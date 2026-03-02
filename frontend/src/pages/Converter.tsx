@@ -52,7 +52,7 @@ function Converter() {
       // Clear the location state to prevent re-adding on refresh
       navigate(location.pathname, { replace: true })
     }
-  }, [location.state])
+  }, [location.state, location.pathname, navigate])
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files

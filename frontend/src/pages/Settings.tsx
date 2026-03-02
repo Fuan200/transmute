@@ -67,7 +67,7 @@ function Settings() {
         setLoaded(true)
       })
       .catch(() => setLoaded(true)) // fall back to defaults silently
-  }, [])
+  }, [setTheme])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

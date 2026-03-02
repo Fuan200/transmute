@@ -16,7 +16,7 @@ const STORAGE_KEY = 'transmute-theme'
 
 function applyThemeToDom(name: ThemeName) {
   document.documentElement.setAttribute('data-theme', name)
-  try { localStorage.setItem(STORAGE_KEY, name) } catch (_) {}
+  try { localStorage.setItem(STORAGE_KEY, name) } catch { /* storage unavailable */ }
 }
 
 const VALID_THEMES = new Set<ThemeName>(['rubedo', 'citrinitas', 'viriditas', 'nigredo', 'albedo', 'aurora', 'caelum'])
@@ -25,7 +25,7 @@ function readStoredTheme(): ThemeName {
   try {
     const t = localStorage.getItem(STORAGE_KEY) as ThemeName | null
     if (t && VALID_THEMES.has(t)) return t
-  } catch (_) {}
+  } catch { /* storage unavailable */ }
   return 'rubedo'
 }
 
@@ -58,6 +58,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   return useContext(ThemeContext)
 }
