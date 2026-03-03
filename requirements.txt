@@ -22,3 +22,5 @@ PyMuPDF==1.25.5
 pymupdf4llm==0.0.17
 markdown==3.7
 pysubs2==1.8.0
+fonttools==4.61.1
+brotli==1.2.0
