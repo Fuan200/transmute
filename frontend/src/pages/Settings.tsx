@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTheme, type ThemeName } from '../ThemeContext'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 interface Theme {
   value: string
@@ -53,6 +54,13 @@ function Settings() {
   const [error, setError] = useState<string | null>(null)
   const [clearConversionsStatus, setClearConversionsStatus] = useState<'idle' | 'clearing' | 'success' | 'error'>('idle')
   const [clearUploadsStatus, setClearUploadsStatus] = useState<'idle' | 'clearing' | 'success' | 'error'>('idle')
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    confirmLabel: string
+    onConfirm: () => void
+  } | null>(null)
   const themeRef = useRef<HTMLDivElement>(null)
 
   // Load settings once on mount
@@ -99,31 +107,49 @@ function Settings() {
   }
 
   const handleClearConversions = () => {
-    setClearConversionsStatus('clearing')
-    fetch('/api/conversions/all', { method: 'DELETE' })
-      .then(r => {
-        if (!r.ok) throw new Error()
-        setClearConversionsStatus('success')
-        setTimeout(() => setClearConversionsStatus('idle'), 2000)
-      })
-      .catch(() => {
-        setClearConversionsStatus('error')
-        setTimeout(() => setClearConversionsStatus('idle'), 2000)
-      })
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Clear Conversion History?',
+      message: 'You are about to clear conversion history and delete converted files. This action cannot be undone. Do you wish to proceed?',
+      confirmLabel: 'Yes, Clear History',
+      onConfirm: () => {
+        setConfirmDialog(null)
+        setClearConversionsStatus('clearing')
+        fetch('/api/conversions/all', { method: 'DELETE' })
+          .then(r => {
+            if (!r.ok) throw new Error()
+            setClearConversionsStatus('success')
+            setTimeout(() => setClearConversionsStatus('idle'), 2000)
+          })
+          .catch(() => {
+            setClearConversionsStatus('error')
+            setTimeout(() => setClearConversionsStatus('idle'), 2000)
+          })
+      },
+    })
   }
 
   const handleClearUploads = () => {
-    setClearUploadsStatus('clearing')
-    fetch('/api/files/all', { method: 'DELETE' })
-      .then(r => {
-        if (!r.ok) throw new Error()
-        setClearUploadsStatus('success')
-        setTimeout(() => setClearUploadsStatus('idle'), 2000)
-      })
-      .catch(() => {
-        setClearUploadsStatus('error')
-        setTimeout(() => setClearUploadsStatus('idle'), 2000)
-      })
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Clear Uploaded Files?',
+      message: 'You are about to delete all uploaded files. This action cannot be undone. Do you wish to proceed?',
+      confirmLabel: 'Yes, Clear Files',
+      onConfirm: () => {
+        setConfirmDialog(null)
+        setClearUploadsStatus('clearing')
+        fetch('/api/files/all', { method: 'DELETE' })
+          .then(r => {
+            if (!r.ok) throw new Error()
+            setClearUploadsStatus('success')
+            setTimeout(() => setClearUploadsStatus('idle'), 2000)
+          })
+          .catch(() => {
+            setClearUploadsStatus('error')
+            setTimeout(() => setClearUploadsStatus('idle'), 2000)
+          })
+      },
+    })
   }
 
   if (!loaded) {
@@ -316,6 +342,19 @@ function Settings() {
         </div>
 
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          isDestructive={true}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   )
 }
