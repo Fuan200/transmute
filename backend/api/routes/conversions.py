@@ -105,7 +105,10 @@ async def create_conversion(
 
     # Perform the conversion using the converter interface
     converter: ConverterInterface = converter_type(og_metadata['storage_path'], f'{TEMP_DIR}/', input_format, output_format)
-    output_files = converter.convert()
+    try:
+        output_files = converter.convert()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Conversion failed: {str(e)}")
     moved_output_file = Path(output_files[0]).rename(f'{CONVERTED_DIR}/{converted_id}.{output_format}')
 
     # Store the converted file metadata in the conversion database and create a relation to the original file
