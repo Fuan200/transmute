@@ -11,8 +11,8 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://github.com/transmute-app/transmute/blob/main/docker-compose.yml)
 ![Status](https://img.shields.io/badge/status-development-orange)
 
-![Docker Image Size](https://img.shields.io/docker/image-size/neonvariant/transmute?logo=docker&logoColor=white&color=gray)
-![GitHub repo size](https://img.shields.io/github/repo-size/transmute-app/transmute?logo=github&logoColor=white&color=gray)
+![Docker Image Size](https://img.shields.io/docker/image-size/neonvariant/transmute?logo=docker&logoColor=white&color=gray&cacheSeconds=14400)
+![GitHub repo size](https://img.shields.io/github/repo-size/transmute-app/transmute?logo=github&logoColor=white&color=gray&cacheSeconds=14400)
 
 
 The self-hosted file converter that lets you convert anything, anywhere.
@@ -62,3 +62,9 @@ When the app is running the API docs are available at http://TRANSMUTE_IP:3313/a
 ## Contributing
 
 Contributions are welcome! This project is human-driven — autonomous agents and AI assistants are not welcome contributors and such submissions will be rejected. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for details.
+
+### Our Awesome Contributors
+
+<a href="https://github.com/transmute-app/transmute/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=transmute-app/transmute" alt="Image with all contributors"/>
+</a>
