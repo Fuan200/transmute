@@ -15,15 +15,24 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/transmute-app/transmute?logo=github&logoColor=white&color=gray&cacheSeconds=14400)
 
 
-The self-hosted file converter that lets you convert anything, anywhere.
+**Transmute** is a **free, open source, self-hosted file converter** built for privacy and flexibility. Convert **images, video, audio, documents, spreadsheets, subtitles, and fonts** entirely locally, with no file size limits, no account required, and no third-party access to your files. Deploy in seconds with Docker.
 
-This application is under active development, want to support us? Give us a star or jump in and contribute!
+This application is under active development. Want to support us? Give us a star or jump in and contribute!
 
 > [!NOTE]
 > **This project is human-led and human-reviewed.** Every line of code is understood, validated, and owned by a real person. This is not a vibe-coded AI slop project, and automated agents or fully AI-generated contributions are not welcome here. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for more details
 
+## Features
+
+- **Privacy first**: Files are processed on your own server and never sent to third parties
+- **No file size limits**: Convert files as large as your storage allows
+- **100+ formats supported**: Images, video, audio, documents, spreadsheets, subtitles, and fonts
+- **Docker ready**: Deploy with a single command, no complex setup required
+- **REST API**: Automate and integrate file conversions via the built-in OpenAPI-documented API
+- **Multiple themes**: Seven built-in light and dark UI themes
+
 ## Screenshots
-| Converter / Home | Uploaded Files | Previsouly Converted | Settings |
+| Converter / Home | Uploaded Files | Previously Converted | Settings |
 | --- | --- | --- | --- |
 | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/converter.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/files.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/history.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/settings.png" width=100%> |
 
@@ -34,7 +43,7 @@ This application is under active development, want to support us? Give us a star
 </div>
  POST_GIF_MARKER -->
 
-# Quickstart
+## Quickstart
 ```bash
 wget "https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/docker-compose.yml" && docker compose up -d
 ```
@@ -46,6 +55,19 @@ wget "https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/
 | [cloudconvert.com](https://cloudconvert.com/) |  File size limits, API is paid only, 3rd-party gets my files |
 | [freeconvert.com](https://www.freeconvert.com/) | File size limits, 3rd-party gets my files |
 | [cconvertio.co](https://convertio.co/) | File size limits, 3rd-party gets my files |
+
+## Supported Formats
+
+| Category | Formats |
+| -------- | ------- |
+| Images | JPEG, PNG, WebP, AVIF, HEIC/HEIF, JXL, GIF, BMP, TIFF, SVG, ICO, PSD, and more |
+| Video | MP4, MKV, MOV, WebM, AVI, FLV, WMV, TS, 3GP, and more |
+| Audio | MP3, WAV, FLAC, AAC, M4A, OPUS, OGG, AIFF, WMA, and more |
+| Documents | Markdown, HTML, DOCX, PDF, EPUB, ODT, RST, LaTeX, RTF, PPTX, and more |
+| Data / Spreadsheets | CSV, XLSX, JSON, Parquet, YAML, TSV, XML, ODS, and more |
+| Subtitles | SRT, ASS, SSA, VTT, SUB |
+| Fonts | TTF, OTF, WOFF, WOFF2 |
+| Diagrams | DrawIO |
 
 ## Themes
 
@@ -61,7 +83,7 @@ When the app is running the API docs are available at http://TRANSMUTE_IP:3313/a
 
 ## Contributing
 
-Contributions are welcome! This project is human-driven — autonomous agents and AI assistants are not welcome contributors and such submissions will be rejected. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for details.
+Contributions are welcome! This project is human-driven - autonomous agents and AI assistants are not welcome contributors and such submissions will be rejected. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for details.
 
 ### Our Awesome Contributors
 
