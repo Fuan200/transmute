@@ -1,6 +1,7 @@
 import os
 import uuid
 import hashlib
+import mimetypes
 
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
@@ -129,10 +130,13 @@ def get_file(file_id: str, file_db: FileDB = Depends(get_file_db), conv_db: Conv
             file_path = Path(metadata['storage_path'])
             # Validate path before serving
             validate_safe_path(file_path, raise_exception=True)
+            # media_type in DB is an extension (e.g. "svg"), convert to MIME
+            ext = metadata['media_type']
+            mime_type = mimetypes.guess_type(f"file.{ext}")[0] or "application/octet-stream"
             return FileResponse(
                 path=file_path,
                 filename=metadata['original_filename'],
-                media_type=metadata['media_type']
+                media_type=mime_type
             )
     raise HTTPException(status_code=404, detail="File not found")
 
