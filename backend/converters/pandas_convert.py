@@ -164,7 +164,11 @@ class PandasConverter(ConverterInterface):
         elif self.output_type == 'xml':
             df.to_xml(output_file, index=False)
         elif self.output_type == 'html':
-            df.to_html(output_file, index=False)
+            from lxml import etree
+            html_str = df.to_html(index=False)
+            root = etree.fromstring(html_str.encode(), etree.HTMLParser())
+            with open(output_file, 'wb') as f:
+                f.write(etree.tostring(root, pretty_print=True, method='html'))
         elif self.output_type == 'ods':
             df.to_excel(output_file, engine='odf', index=False)
         elif self.output_type == 'yaml':
