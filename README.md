@@ -20,7 +20,8 @@
 This application is under active development. Want to support us? Give us a star or jump in and contribute!
 
 > [!NOTE]
-> **This project is human-led and human-reviewed.** Every line of code is understood, validated, and owned by a real person. This is not a vibe-coded AI slop project, and automated agents or fully AI-generated contributions are not welcome here. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for more details
+> **This project is human-led and maintainer-reviewed.**
+> AI tools may be used during development, but all code is intentionally written, reviewed, and validated by a human who understands and takes responsibility for the result. This is not an autonomously generated project, and fully AI-generated or agent-submitted contributions are not accepted. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for more details
 
 ## Features
 

@@ -10,13 +10,15 @@ First off, thank you for your interest in contributing ❤️
 This project is intended to be a reliable, self-hosted tool, and contributions of all kinds are welcome: code, documentation, bug reports, ideas, and feedback.
 
 > [!CAUTION]
-> ## No Autonomous Agents or AI Assistants
+> ## No Autonomous Agents or Unreviewed AI Contributions
 >
-> **Fully autonomous agents and AI coding assistants are not welcome contributors to this repository.**
+> This repository does not accept contributions submitted by autonomous agents or by AI systems acting without direct human authorship, review, and accountability.
 >
-> Contributions that are determined to have been generated or submitted by an autonomous agent or AI assistant (e.g. automated pull requests, AI-driven code generation tools acting without direct human authorship and review) will be **rejected without review**.
+> Pull requests must come from a human contributor who has meaningfully reviewed, understood, and validated the proposed changes. Contributors are responsible for the code they submit.
 >
-> All contributions must be authored and meaningfully reviewed by a real human being who takes responsibility for the changes. If you used AI tooling to assist your work, you are expected to have fully understood, reviewed, and validated every line before submitting.
+> AI-assisted development is not prohibited, but unreviewed, blindly accepted, or fully agent-generated contributions are not acceptable. If you use AI tooling, you are expected to verify correctness, understand the implementation, and stand behind the final submission.
+>
+> Maintainers may reject contributions without review if they appear to be primarily autonomous, low-effort AI output, or otherwise lack clear human ownership. (i.e. direct commits from OpenClaw, or other AI assistants)
 
 ---
 
