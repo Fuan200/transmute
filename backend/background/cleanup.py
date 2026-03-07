@@ -2,32 +2,21 @@ import calendar
 import threading
 import time
 
-from db import FileDB, SettingsDB, ConversionDB, ConversionRelationsDB
+from db import FileDB, ConversionDB, ConversionRelationsDB, SettingsDB
 from core import delete_file_and_metadata
 
 def file_cleanup_logic(file_db: FileDB, conversion_relations_db: ConversionRelationsDB = None) -> None:
     """Delete files that have exceeded the configured cleanup TTL.
 
-    Reads the current cleanup_ttl_minutes from the settings database, then
-    iterates over all files tracked by the provided database. Any file whose
-    creation timestamp is older than the TTL is deleted along with its
-    metadata. If a conversion-relations database is supplied, the
-    corresponding conversion relation is also removed.
-
-    Args:
-        file_db: Database instance used to list and delete files. Can be
-            a FileDB or ConversionDB depending on which file set is being
-            cleaned up.
-        conversion_relations_db: Optional database instance for removing
-            conversion relation records linked to deleted files. When
-            omitted, relation cleanup is skipped.
+    Reads cleanup settings from the first admin user's configuration.
+    Files are cleaned up regardless of user ownership as this is a
+    system maintenance task.
     """
     now = time.time()
     settings_db = SettingsDB()
-    settings = settings_db.get_settings()
-    cleanup_enabled = settings.get("cleanup_enabled", True)
-    ttl_minutes = settings.get("cleanup_ttl_minutes", 60)
-    settings_db.close()
+    admin_settings = settings_db.get_admin_cleanup_settings()
+    cleanup_enabled = admin_settings["cleanup_enabled"]
+    ttl_minutes = admin_settings["cleanup_ttl_minutes"]
 
     if not cleanup_enabled:
         return

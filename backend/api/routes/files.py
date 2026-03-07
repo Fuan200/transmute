@@ -10,7 +10,7 @@ from pathlib import Path
 from core import get_settings, detect_media_type, sanitize_extension, sanitize_filename, delete_file_and_metadata, validate_safe_path
 from db import FileDB, ConversionDB
 from registry import registry as converter_registry
-from api.deps import get_file_db, get_conversion_db
+from api.deps import get_current_active_user, get_file_db, get_conversion_db
 from api.schemas import FileListResponse, FileUploadResponse, FileDeleteResponse, ErrorResponse, BatchDownloadRequest
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -22,7 +22,7 @@ CONVERTED_DIR = settings.output_dir
 TMP_DIR = settings.tmp_dir
 
 
-async def save_file(file: UploadFile, db: FileDB) -> dict:
+async def save_file(file: UploadFile, db: FileDB, user_id: str) -> dict:
     """Save an uploaded file to disk and store its metadata in the database."""
     uuid_str = str(uuid.uuid4())
     original_filename = file.filename or "upload"
@@ -55,6 +55,7 @@ async def save_file(file: UploadFile, db: FileDB) -> dict:
         "extension": file_extension,
         "size_bytes": size_bytes,
         "sha256_checksum": hasher.hexdigest(),
+        "user_id": user_id,
     }
     db.insert_file_metadata(metadata)
     metadata["compatible_formats"] = converter_registry.get_compatible_formats(media_type)
@@ -71,9 +72,12 @@ async def save_file(file: UploadFile, db: FileDB) -> dict:
         }
     }
 )
-def list_files(file_db: FileDB = Depends(get_file_db)):
-    """List all uploaded files"""
-    files = file_db.list_files()
+def list_files(
+    file_db: FileDB = Depends(get_file_db),
+    current_user: dict = Depends(get_current_active_user),
+):
+    """List all uploaded files for the current user"""
+    files = file_db.list_files(user_id=current_user["uuid"])
     for file in files:
         file["compatible_formats"] = converter_registry.get_compatible_formats(file["media_type"])
     return {"files": files}
@@ -95,11 +99,12 @@ def list_files(file_db: FileDB = Depends(get_file_db)):
 )
 async def upload_file(
     file: UploadFile = File(...),
-    file_db: FileDB = Depends(get_file_db)
+    file_db: FileDB = Depends(get_file_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
     """Upload a file and save it to the server"""
     try:
-        metadata = await save_file(file, file_db)
+        metadata = await save_file(file, file_db, current_user["uuid"])
         return {"message": "File uploaded successfully", "metadata": metadata}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
@@ -121,12 +126,20 @@ async def upload_file(
         }
     }
 )
-def get_file(file_id: str, file_db: FileDB = Depends(get_file_db), conv_db: ConversionDB = Depends(get_conversion_db)):
+def get_file(
+    file_id: str,
+    file_db: FileDB = Depends(get_file_db),
+    conv_db: ConversionDB = Depends(get_conversion_db),
+    current_user: dict = Depends(get_current_active_user),
+):
     """Download a file"""
     # First check if file_id corresponds to an original uploaded file
     for db in [file_db, conv_db]:
         metadata = db.get_file_metadata(file_id)
         if metadata is not None:
+            # Verify the file belongs to the current user
+            if metadata.get("user_id") != current_user["uuid"]:
+                raise HTTPException(status_code=404, detail="File not found")
             file_path = Path(metadata['storage_path'])
             # Validate path before serving
             validate_safe_path(file_path, raise_exception=True)
@@ -159,7 +172,8 @@ def batch_download_files(
     request: BatchDownloadRequest,
     background_tasks: BackgroundTasks,
     file_db: FileDB = Depends(get_file_db),
-    conv_db: ConversionDB = Depends(get_conversion_db)
+    conv_db: ConversionDB = Depends(get_conversion_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
     """Batch download converted files as a ZIP archive"""
     # Create temporary ZIP file
@@ -175,6 +189,10 @@ def batch_download_files(
             for db in [file_db, conv_db]:
                 file_metadata = db.get_file_metadata(file_id)
                 if file_metadata is not None:
+                    # Verify the file belongs to the current user
+                    if file_metadata.get("user_id") != current_user["uuid"]:
+                        file_metadata = None
+                        continue
                     found_file_in_db = True
                     break
             
@@ -229,11 +247,11 @@ def batch_download_files(
     }
 )
 def delete_all_files(
-    file_db: FileDB = Depends(get_file_db)
+    file_db: FileDB = Depends(get_file_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    """Delete all uploaded files"""
-    # Find all uploaded file IDs
-    uploaded_files = file_db.list_files()
+    """Delete all uploaded files for the current user"""
+    uploaded_files = file_db.list_files(user_id=current_user["uuid"])
     for file in uploaded_files:
         delete_file_and_metadata(file['id'], file_db)
     return {"message": "All files deleted successfully"}
@@ -254,9 +272,15 @@ def delete_all_files(
 )
 def delete_file(
     file_id: str,
-    file_db: FileDB = Depends(get_file_db)
+    file_db: FileDB = Depends(get_file_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
     """Delete an uploaded file"""
-    # Find converted file ID related to this original file ID, if it exists
+    # Verify the file belongs to the current user
+    metadata = file_db.get_file_metadata(file_id)
+    if metadata is None:
+        raise HTTPException(status_code=404, detail="File not found")
+    if metadata.get("user_id") != current_user["uuid"]:
+        raise HTTPException(status_code=404, detail="File not found")
     delete_file_and_metadata(file_id, file_db)
     return {"message": "File deleted successfully"}

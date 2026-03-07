@@ -5,7 +5,7 @@ from converters import ConverterInterface
 from registry import registry
 from core import get_settings, sanitize_extension, delete_file_and_metadata, validate_safe_path, compute_sha256_checksum
 from db import ConversionDB, FileDB, ConversionRelationsDB, SettingsDB
-from api.deps import get_file_db, get_conversion_db, get_conversion_relations_db, get_settings_db
+from api.deps import get_current_active_user, get_file_db, get_conversion_db, get_conversion_relations_db, get_settings_db
 from api.schemas import ConversionRequest, ConversionListResponse, FileMetadata, ErrorResponse, FileDeleteResponse
 
 
@@ -28,14 +28,14 @@ CONVERTED_DIR = settings.output_dir
 )
 def list_conversions(
     conv_db: ConversionDB = Depends(get_conversion_db),
-    conv_rel_db: ConversionRelationsDB = Depends(get_conversion_relations_db)
+    conv_rel_db: ConversionRelationsDB = Depends(get_conversion_relations_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    """List all completed conversions with their converted and original file metadata."""
-    # Get converted files and relations with denormalized original file metadata
-    converted_files = conv_db.list_files()
+    """List all completed conversions for the current user."""
+    converted_files = conv_db.list_files(user_id=current_user["uuid"])
     converted_files_dict = {f['id']: f for f in converted_files}
 
-    relations = conv_rel_db.list_relations()
+    relations = conv_rel_db.list_relations(user_id=current_user["uuid"])
     # For each relation, create a conversion-centric record with original file metadata from the relation
     # This uses denormalized data so original files can be deleted without breaking history
     conversion_records = []
@@ -79,7 +79,8 @@ def create_conversion(
     file_db: FileDB = Depends(get_file_db),
     conversion_db: ConversionDB = Depends(get_conversion_db),
     conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db),
-    settings_db: SettingsDB = Depends(get_settings_db)
+    settings_db: SettingsDB = Depends(get_settings_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
     """Create a new conversion for a previously uploaded file."""
     og_id = conversion_request.id
@@ -88,6 +89,9 @@ def create_conversion(
 
     # Ensure the original file was uploaded and exists in the database
     if og_metadata is None:
+        raise HTTPException(status_code=404, detail=f"No file found with id {og_id}")
+    # Verify the file belongs to the current user
+    if og_metadata.get("user_id") != current_user["uuid"]:
         raise HTTPException(status_code=404, detail=f"No file found with id {og_id}")
     
     # Validate the original file's storage path
@@ -117,6 +121,7 @@ def create_conversion(
     converted_metadata['storage_path'] = str(moved_output_file)
     converted_metadata['size_bytes'] = moved_output_file.stat().st_size
     converted_metadata['sha256_checksum'] = compute_sha256_checksum(moved_output_file)
+    converted_metadata['user_id'] = current_user["uuid"]
     converted_metadata.pop('created_at', None)  # Remove created_at from original metadata if it exists
     conversion_db.insert_file_metadata(converted_metadata)
     # Store relation with denormalized original file metadata
@@ -126,9 +131,10 @@ def create_conversion(
         'original_filename': og_metadata['original_filename'],
         'original_media_type': og_metadata['media_type'],
         'original_extension': og_metadata['extension'],
-        'original_size_bytes': og_metadata['size_bytes']
+        'original_size_bytes': og_metadata['size_bytes'],
+        'user_id': current_user["uuid"],
     })
-    if settings_db.get_settings().get("keep_originals", True) is False:
+    if settings_db.get_settings(current_user["uuid"]).get("keep_originals", True) is False:
         delete_file_and_metadata(file_id=og_id, file_db=file_db)
     return converted_metadata
 
@@ -144,11 +150,11 @@ def create_conversion(
 )
 def delete_all_conversions(
     conversion_db: ConversionDB = Depends(get_conversion_db),
-    conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db)
+    conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    """Delete all converted files and their relations to the original files"""
-    # Find all converted file IDs
-    converted_files = conversion_db.list_files()
+    """Delete all converted files and their relations for the current user"""
+    converted_files = conversion_db.list_files(user_id=current_user["uuid"])
     for file in converted_files:
         delete_file_and_metadata(file['id'], conversion_db)
         conversion_relations_db.delete_relation_by_converted(file['id'])
@@ -171,10 +177,16 @@ def delete_all_conversions(
 def delete_conversion(
     conversion_id: str,
     conversion_db: ConversionDB = Depends(get_conversion_db),
-    conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db)
+    conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db),
+    current_user: dict = Depends(get_current_active_user),
 ):
-    """Delete a converted file and its relation to the original file"""
-    # Find converted file ID related to this original file ID, if it exists
+    """Delete a converted file and its relation"""
+    # Verify the conversion belongs to the current user
+    metadata = conversion_db.get_file_metadata(conversion_id)
+    if metadata is None:
+        raise HTTPException(status_code=404, detail="Conversion not found")
+    if metadata.get("user_id") != current_user["uuid"]:
+        raise HTTPException(status_code=404, detail="Conversion not found")
     delete_file_and_metadata(conversion_id, conversion_db)
     conversion_relations_db.delete_relation_by_converted(conversion_id)
     return {"message": "Conversion history deleted successfully"}

@@ -32,6 +32,46 @@ def compute_sha256_checksum(file_path: str | Path, chunk_size: int = 1024 * 1024
     return hasher.hexdigest()
 
 
+def assign_orphaned_rows_to_admin(
+    conn: sqlite3.Connection,
+    table_name: str,
+    user_table_name: str = "USERS",
+) -> None:
+    """Assign rows with NULL user_id to the first admin user.
+
+    During migration from a pre-auth version of the database, existing rows
+    will have no user_id.  This finds the earliest admin account and claims
+    those orphaned rows so they are not invisible after the upgrade.
+
+    Args:
+        conn: An open SQLite connection.
+        table_name: The (already-validated) table name to update.
+        user_table_name: The name of the users table to query for the
+            first admin.  Defaults to ``"USERS"``.
+    """
+    # Check if there are any orphaned rows first to avoid unnecessary work
+    cursor = conn.execute(
+        f"SELECT 1 FROM {table_name} WHERE user_id IS NULL LIMIT 1"  # nosec B608
+    )
+    if cursor.fetchone() is None:
+        return
+
+    # Find the first admin user by rowid
+    cursor = conn.execute(
+        f"SELECT uuid FROM {user_table_name} WHERE role = 'admin' ORDER BY rowid LIMIT 1"  # nosec B608
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return
+
+    admin_uuid = row[0]
+    with conn:
+        conn.execute(
+            f"UPDATE {table_name} SET user_id = ? WHERE user_id IS NULL",  # nosec B608
+            (admin_uuid,)
+        )
+
+
 def migrate_table_columns(
     conn: sqlite3.Connection,
     table_name: str,

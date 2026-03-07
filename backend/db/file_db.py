@@ -1,7 +1,7 @@
 import sqlite3
 import threading
 from typing import Optional
-from core import get_settings, validate_sql_identifier, migrate_table_columns
+from core import get_settings, validate_sql_identifier, migrate_table_columns, assign_orphaned_rows_to_admin
 
 '''
 Anywhere you see # nosec B608, it is marking a Bandit false positive. The table 
@@ -71,7 +71,11 @@ class FileDB:
             "size_bytes":       "INTEGER",
             "sha256_checksum":  "TEXT",
             "created_at":       "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "user_id":          "TEXT",
         })
+
+        # Assign pre-auth orphaned rows to the first admin
+        assign_orphaned_rows_to_admin(self.conn, self.TABLE_NAME)
 
     def insert_file_metadata(self, metadata: dict) -> None:
         """Insert a new file metadata record into the database.
@@ -96,19 +100,21 @@ class FileDB:
             'media_type',
             'extension',
             'size_bytes',
-            'sha256_checksum'
+            'sha256_checksum',
+            'user_id'
         ]
         if metadata.keys() != set(required_fields):
             raise ValueError(f"Metadata must contain the following fields: {required_fields}. Missing or extra fields: {set(required_fields).symmetric_difference(metadata.keys())}")
         with self.conn:
-            self.conn.execute(f"INSERT INTO {self.TABLE_NAME} (id, storage_path, original_filename, media_type, extension, size_bytes, sha256_checksum) VALUES (?, ?, ?, ?, ?, ?, ?)", (  # nosec B608
+            self.conn.execute(f"INSERT INTO {self.TABLE_NAME} (id, storage_path, original_filename, media_type, extension, size_bytes, sha256_checksum, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (  # nosec B608
                 metadata['id'],
                 metadata['storage_path'],
                 metadata['original_filename'],
                 metadata['media_type'],
                 metadata['extension'],
                 metadata['size_bytes'],
-                metadata['sha256_checksum']
+                metadata['sha256_checksum'],
+                metadata['user_id'],
             ))  # nosec B608
 
     def get_file_metadata(self, file_id: str) -> Optional[dict]:
@@ -129,16 +135,14 @@ class FileDB:
             return None
         return dict(row)
 
-    def list_files(self) -> list[dict]:
-        """Retrieve metadata for all files in the database.
-
-        Returns:
-            A list of dictionaries, each containing the metadata for one file.
-            Returns an empty list if no files are stored.
-        """
+    def list_files(self, user_id: str | None = None) -> list[dict]:
+        """Retrieve metadata for files, optionally filtered by user."""
         cursor = self.conn.cursor()
         cursor.row_factory = sqlite3.Row
-        cursor.execute(f"SELECT * FROM {self.TABLE_NAME}")  # nosec B608
+        if user_id is not None:
+            cursor.execute(f"SELECT * FROM {self.TABLE_NAME} WHERE user_id = ?", (user_id,))  # nosec B608
+        else:
+            cursor.execute(f"SELECT * FROM {self.TABLE_NAME}")  # nosec B608
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
