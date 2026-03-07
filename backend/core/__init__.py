@@ -2,6 +2,7 @@ from .settings import get_settings
 from .media_types import media_type_aliases
 
 from .helper_functions import (
+    compute_sha256_checksum,
     detect_media_type,
     sanitize_extension,
     sanitize_filename,
@@ -14,6 +15,7 @@ from .helper_functions import (
 
 __all__ = [
     "get_settings", 
+    "compute_sha256_checksum",
     "detect_media_type", 
     "sanitize_extension", 
     "sanitize_filename",

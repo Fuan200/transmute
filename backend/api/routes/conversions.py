@@ -1,10 +1,9 @@
 from pathlib import Path
 import uuid
-import hashlib
 from fastapi import APIRouter, Depends, HTTPException
 from converters import ConverterInterface
 from registry import registry
-from core import get_settings, sanitize_extension, delete_file_and_metadata, validate_safe_path
+from core import get_settings, sanitize_extension, delete_file_and_metadata, validate_safe_path, compute_sha256_checksum
 from db import ConversionDB, FileDB, ConversionRelationsDB, SettingsDB
 from api.deps import get_file_db, get_conversion_db, get_conversion_relations_db, get_settings_db
 from api.schemas import ConversionRequest, ConversionListResponse, FileMetadata, ErrorResponse, FileDeleteResponse
@@ -117,7 +116,7 @@ def create_conversion(
     converted_metadata['extension'] = f".{output_format}"
     converted_metadata['storage_path'] = str(moved_output_file)
     converted_metadata['size_bytes'] = moved_output_file.stat().st_size
-    converted_metadata['sha256_checksum'] = hashlib.sha256(moved_output_file.read_bytes()).hexdigest()
+    converted_metadata['sha256_checksum'] = compute_sha256_checksum(moved_output_file)
     converted_metadata.pop('created_at', None)  # Remove created_at from original metadata if it exists
     conversion_db.insert_file_metadata(converted_metadata)
     # Store relation with denormalized original file metadata

@@ -2,6 +2,7 @@ import os
 import re
 import sqlite3
 import mimetypes
+import hashlib
 import magic
 
 from typing import TYPE_CHECKING
@@ -12,6 +13,23 @@ if TYPE_CHECKING:
     from db import FileDB
     
 from core.settings import get_settings
+
+
+def compute_sha256_checksum(file_path: str | Path, chunk_size: int = 1024 * 1024) -> str:
+    """Compute a SHA-256 checksum without loading the full file into memory.
+
+    Args:
+        file_path: Path to the file to hash
+        chunk_size: Number of bytes to read per iteration
+
+    Returns:
+        Hex-encoded SHA-256 digest
+    """
+    hasher = hashlib.sha256()
+    with Path(file_path).open("rb") as file_handle:
+        while chunk := file_handle.read(chunk_size):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def migrate_table_columns(
