@@ -1,6 +1,6 @@
 services:
   transmute:
-    image: ghcr.io/transmute-app/transmute:main
+    image: ghcr.io/transmute-app/transmute:latest
     container_name: transmute
     restart: unless-stopped
     ports:
