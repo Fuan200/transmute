@@ -8,8 +8,12 @@ RUN npm install && npm run build
 # Stage 2: Runtime
 FROM python:3.13-slim
 
+ARG BUILD_VERSION="dev"
+
 # Set working directory
 WORKDIR /app
+
+ENV APP_VERSION=$BUILD_VERSION
 
 # Install python dependencies
 COPY requirements.txt .
@@ -69,7 +73,6 @@ EXPOSE 3313
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Image metadata (OCI labels)
-ARG BUILD_VERSION=""
 ARG BUILD_DATE=""
 ARG VCS_REF=""
 LABEL org.opencontainers.image.title="Transmute"
