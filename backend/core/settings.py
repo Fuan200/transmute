@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # ===== Core =====
 
     app_name: str = "Transmute"
-    app_version: str = "0.1.1"
+    app_version: str = Field(default="dev")
 
     # ===== Storage =====
 
