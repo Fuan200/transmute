@@ -61,6 +61,11 @@ dev-frontend: ## Run the Vite frontend dev server
 	cd frontend && npm run dev
 
 # ----------------------------------------------------------------------------
+# Reporting
+# ----------------------------------------------------------------------------
+conv-count: ## Count total conversations in the database
+	$(PYTHON) backend/export_supported_conversions.py --report-only
+# ----------------------------------------------------------------------------
 # Build
 # ----------------------------------------------------------------------------
 
