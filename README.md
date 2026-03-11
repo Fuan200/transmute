@@ -73,7 +73,7 @@ wget "https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/
 | Video | MP4, MKV, MOV, WebM, AVI, FLV, WMV, TS, 3GP, and more |
 | Audio | MP3, WAV, FLAC, AAC, M4A, OPUS, OGG, AIFF, WMA, and more |
 | Documents | Markdown, HTML, DOCX, PDF, EPUB, ODT, RST, LaTeX, RTF, PPTX, and more |
-| Data / Spreadsheets | CSV, XLSX, JSON, Parquet, YAML, TSV, XML, ODS, and more |
+| Data / Spreadsheets | CSV, XLSX, JSON, TOON, Parquet, YAML, TSV, XML, ODS, and more |
 | Subtitles | SRT, ASS, SSA, VTT, SUB |
 | Fonts | TTF, OTF, WOFF, WOFF2 |
 | Diagrams | DrawIO |

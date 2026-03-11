@@ -140,7 +140,7 @@ const PREVIEWABLE_TEXT = new Set([
   'sql', 'py', 'rb', 'java', 'c', 'cpp', 'h', 'hpp', 'cs', 'go',
   'rs', 'swift', 'kt', 'sh', 'bash', 'zsh', 'bat', 'ps1',
   'tsx', 'jsx', 'scss', 'sass', 'less', 'graphql', 'gql',
-  'rst', 'tex', 'tsv', 'diff', 'patch',
+  'rst', 'tex', 'tsv', 'diff', 'patch', 'toon'
 ])
 
 type PreviewType = 'image' | 'video' | 'audio' | 'pdf' | 'text' | null

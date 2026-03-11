@@ -1,0 +1,20 @@
+report:
+  id: q1-2026
+  title: Quarterly analytics snapshot
+  generated_at: 2026-03-10T12:00:00Z
+  owner:
+    team: analytics
+    contact: data-team@example.com
+  tags[4]: finance,q1,forecast,approved
+  summary:
+    currency: USD
+    total_revenue: 2990000
+    total_expenses: 1990000
+    margin_pct: 33.4
+  regions[3]{code,revenue,expenses,active}:
+    NA,1250000,830000,true
+    EMEA,980000,640000,true
+    APAC,760000,520000,false
+  alerts[2]{severity,message,acknowledged}:
+    low,forecast variance within threshold,true
+    medium,apac staffing plan pending review,false
