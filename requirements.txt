@@ -3,7 +3,7 @@ PyJWT==2.11.0
 PyMuPDF==1.27.2
 bcrypt==5.0.0
 brotli==1.2.0
-cairosvg==2.8.2
+cairosvg==2.9.0
 extract-msg==0.55.0
 fastapi==0.129.0
 fonttools==4.61.1
