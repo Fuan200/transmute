@@ -10,6 +10,7 @@ from .libreoffice_convert import LibreOfficeConverter
 from .email_convert import EmailConverter
 from .converter_interface import ConverterInterface
 from .archive_convert import ArchiveConverter
+from .calibre_convert import CalibreConverter
 
 __all__ = [
     "FFmpegConverter", 
@@ -23,5 +24,6 @@ __all__ = [
     "LibreOfficeConverter", 
     "EmailConverter", 
     "ArchiveConverter", 
-    "ConverterInterface"
+    "CalibreConverter",
+    "ConverterInterface",
     ]

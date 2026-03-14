@@ -25,7 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install additional system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
     libxext6 \
@@ -42,7 +43,9 @@ RUN apt-get update && apt-get install -y \
     unar \
     libreoffice-impress \
     libreoffice-common \
+    calibre \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Install upstream Pandoc to keep reader/writer support consistent across
 # local development and container builds.
@@ -75,11 +78,17 @@ RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
     rm /tmp/drawio.deb && \
     rm -rf /var/lib/apt/lists/*
 
-# Security patches: upgrade vulnerable packages to patched versions, remove vulnerable packages that are not needed
+# Security patches: upgrade vulnerable packages to patched versions
 RUN apt-get update && \
-  apt-get install -y --only-upgrade libnss3 && \
-  apt-get purge -y imagemagick imagemagick-7-common libmagickcore-7.q16-10 libmagickcore-7.q16-10-extra libmagickwand-7.q16-10 && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --only-upgrade \
+    libnss3 \
+    && apt-get purge -y \
+    imagemagick \
+    imagemagick-7-common \
+    libmagickcore-7.q16-10 \
+    libmagickcore-7.q16-10-extra \
+    libmagickwand-7.q16-10 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy backend code
 COPY backend/ ./backend/
