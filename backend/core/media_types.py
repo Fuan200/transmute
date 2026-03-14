@@ -13,4 +13,8 @@ media_type_aliases = {
     'asciidoc': 'adoc',
     'latex': 'tex',
     'tif': 'tiff',
+    'tgz': 'tar.gz',
+    'tbz2': 'tar.bz2',
+    'txz': 'tar.xz',
+    'tzst': 'tar.zst',
 }

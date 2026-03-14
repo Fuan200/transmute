@@ -13,6 +13,7 @@ from .helper_functions import (
     validate_safe_path,
     validate_hexadecimal_filename,
     migrate_table_columns,
+    get_file_extension
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "validate_safe_path",
     "validate_hexadecimal_filename",
     "migrate_table_columns",
+    "get_file_extension",
 ]

@@ -9,5 +9,19 @@ from .fonttools_convert import FonttoolsConverter
 from .libreoffice_convert import LibreOfficeConverter
 from .email_convert import EmailConverter
 from .converter_interface import ConverterInterface
+from .archive_convert import ArchiveConverter
 
-__all__ = ["FFmpegConverter", "PillowConverter", "PandasConverter", "DrawioConverter", "PyPandocConverter", "PyMuPDFConverter", "PySubs2Converter", "FonttoolsConverter", "LibreOfficeConverter", "EmailConverter", "ConverterInterface"]
+__all__ = [
+    "FFmpegConverter", 
+    "PillowConverter", 
+    "PandasConverter", 
+    "DrawioConverter", 
+    "PyPandocConverter", 
+    "PyMuPDFConverter", 
+    "PySubs2Converter", 
+    "FonttoolsConverter", 
+    "LibreOfficeConverter", 
+    "EmailConverter", 
+    "ArchiveConverter", 
+    "ConverterInterface"
+    ]

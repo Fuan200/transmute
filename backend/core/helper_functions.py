@@ -142,7 +142,8 @@ def detect_media_type(file_path: Path) -> str:
         A lowercase extension string without a leading dot (e.g. "png", "pdf")
     """
     # Use extensions as the media_type
-    _, extension = os.path.splitext(file_path)
+    filename = file_path.name
+    extension = get_file_extension(filename)
     if not extension:
         # If no extension, try to detect using magic
         media_type = magic.from_file(str(file_path), mime=True)
@@ -169,6 +170,29 @@ def sanitize_extension(extension: str) -> str:
     cleaned = extension.strip().lstrip(".")
     return "".join(ch for ch in cleaned if ch.isalnum() or ch in {"_", "-", "."}).lower()
 
+def get_file_extension(filename: str) -> str:
+    """
+    Extract and sanitize the file extension from a filename.
+
+    Args:
+        filename: The filename to extract the extension from
+    Returns:
+        A sanitized extension string without a leading dot, or an empty string if no extension is found
+    """
+    # Should return only
+    allowed_concatenated_extensions = {
+        '.tar.gz',
+        '.tar.bz2',
+        '.tar.xz',
+        '.tar.zst',
+    }
+    lower_filename = filename.lower()
+    for ext in allowed_concatenated_extensions:
+        if lower_filename.endswith(ext):
+            return sanitize_extension(ext.lstrip("."))
+    
+    return sanitize_extension(Path(lower_filename).suffix.lower())
+
 
 def validate_hexadecimal_filename(filename: str) -> bool:
     """
@@ -183,7 +207,8 @@ def validate_hexadecimal_filename(filename: str) -> bool:
     """
     # Get filename without extension
     path = Path(filename)
-    stem = path.stem
+    extension = get_file_extension(filename)
+    stem = path.stem if not extension else path.stem[:-len(extension)]
     
     # Check if stem is non-empty and contains only hex characters
     if not stem:

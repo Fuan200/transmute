@@ -7,7 +7,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Backgro
 from fastapi.responses import FileResponse
 from zipfile import ZipFile
 from pathlib import Path
-from core import get_settings, detect_media_type, sanitize_extension, sanitize_filename, delete_file_and_metadata, validate_safe_path
+from core import get_settings, detect_media_type, sanitize_extension, sanitize_filename, delete_file_and_metadata, validate_safe_path, get_file_extension
 from db import FileDB, ConversionDB
 from registry import registry as converter_registry
 from api.deps import get_current_active_user, get_file_db, get_conversion_db
@@ -41,7 +41,7 @@ async def save_file(file: UploadFile, db: FileDB, user_id: str) -> dict:
     """Save an uploaded file to disk and store its metadata in the database."""
     uuid_str = str(uuid.uuid4())
     original_filename = file.filename or "upload"
-    file_extension = sanitize_extension(Path(original_filename).suffix.lower())
+    file_extension = get_file_extension(original_filename)
     unique_filename = f"{uuid_str}"
     if file_extension:
         unique_filename += f".{file_extension}"
