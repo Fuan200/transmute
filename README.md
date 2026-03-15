@@ -17,17 +17,17 @@
 
 **Transmute** is a **free, open source, self-hosted file converter** built for privacy and flexibility. Convert **images, video, audio, documents, spreadsheets, subtitles, and fonts** entirely locally, with no file size limits and no third-party access to your files. Deploy in seconds with Docker.
 
-This application is under active development. Want to support us? Give us a star or jump in and contribute!
+## Screenshots
+| Converter / Home | Uploaded Files | Previously Converted | Settings |
+| --- | --- | --- | --- |
+| <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/converter.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/files.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/history.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/settings.png" width=100%> |
+
+This application is currently in early beta. Want to support us or follow along? Give us a star or jump in and contribute!
 
 > [!NOTE]
 > **This project is human-led and maintainer-reviewed.**
 >
 > AI tools assist during development (autocomplete, some boilerplate, help with tests) but all code is intentionally written, reviewed, and validated by a human who understands and takes responsibility for the result. This is not an autonomously generated project, and fully AI-generated or agent-submitted contributions are not accepted. See the [contributing guide](https://github.com/transmute-app/transmute?tab=contributing-ov-file#no-autonomous-agents-or-ai-assistants) for more details
-
-## Screenshots
-| Converter / Home | Uploaded Files | Previously Converted | Settings |
-| --- | --- | --- | --- |
-| <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/converter.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/files.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/history.png" width=100%> | <img src="https://raw.githubusercontent.com/transmute-app/transmute/refs/heads/main/assets/screenshots/settings.png" width=100%> |
 
 ## Demo
 Want to see a video demo? Check out our [YouTube](https://www.youtube.com/watch?v=lod7Fze9oPY).
