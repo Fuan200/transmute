@@ -330,6 +330,13 @@ class FFmpegConverter(ConverterInterface):
         if self.output_type in _animated_image_formats and self.input_type not in _animated_image_formats:
             cmd.extend(['-vf', 'fps=10,scale=320:-1:flags=lanczos', '-plays', '0'])
 
+        # Most video codecs/containers cannot handle RGBA input (e.g. from
+        # APNG).  Force yuv420p so the alpha channel is stripped before encoding.
+        # Animated image outputs that natively support transparency are excluded.
+        _alpha_safe_formats = {'apng', 'gif'}
+        if self.output_type in (self.video_formats - _alpha_safe_formats):
+            cmd.extend(['-pix_fmt', 'yuv420p'])
+
         # 3GP/3G2 default to H.263 video (limited to specific small resolutions)
         # and amr_nb audio (requires libopencore-amrnb, not in standard FFmpeg builds).
         # Force H.264 + AAC instead, which modern 3GP (3GPP Release 5+) fully supports.
