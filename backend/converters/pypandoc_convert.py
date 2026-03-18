@@ -4,7 +4,7 @@ import os
 import re
 import shutil
 import tempfile
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as DefusedET
 import pypandoc
 from pathlib import Path
 from typing import Optional
@@ -298,7 +298,7 @@ class PyPandocConverter(ConverterInterface):
         temp_input_path = Path(temp_dir) / input_path.name
         shutil.copy2(input_path, temp_input_path)
 
-        tree = ET.parse(temp_input_path)
+        tree = DefusedET.parse(temp_input_path)
         root = tree.getroot()
         namespace = {
             'fb2': 'http://www.gribuser.ru/xml/fictionbook/2.0',

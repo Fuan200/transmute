@@ -1,5 +1,5 @@
 import base64
-import xml.etree.ElementTree as ET
+from defusedxml import ElementTree as DefusedET
 from pathlib import Path
 
 from converters.pypandoc_convert import PyPandocConverter
@@ -43,7 +43,7 @@ def test_prepare_fb2_input_sanitizes_binary_ids(safe_path_test_settings, monkeyp
         assert 'evil.jpg' in extracted_files
         assert '../../evil.jpg' not in extracted_files
 
-        tree = ET.parse(prepared_path)
+        tree = DefusedET.parse(prepared_path)
         namespace = {
             'fb2': 'http://www.gribuser.ru/xml/fictionbook/2.0',
             'xlink': 'http://www.w3.org/1999/xlink',
