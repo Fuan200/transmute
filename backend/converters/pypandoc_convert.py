@@ -1,4 +1,6 @@
 import os
+import re
+import tempfile
 import pypandoc
 from pathlib import Path
 from typing import Optional
@@ -202,6 +204,95 @@ class PyPandocConverter(ConverterInterface):
 
         return extra_args
 
+    def _is_remote_resource(self, target: str) -> bool:
+        return target.startswith(('http://', 'https://'))
+
+    def _resource_exists(self, target: str, input_dir: Path) -> bool:
+        if self._is_remote_resource(target):
+            return False
+        return (input_dir / target).exists()
+
+    def _sanitize_rst_content(self, content: str, input_dir: Path) -> str:
+        lines = content.splitlines()
+        sanitized: list[str] = []
+        index = 0
+
+        while index < len(lines):
+            line = lines[index]
+            match = re.match(r'^(\s*\.\.\s+image::\s+)(\S+)\s*$', line)
+            if not match:
+                sanitized.append(line)
+                index += 1
+                continue
+
+            target = match.group(2)
+            if self._resource_exists(target, input_dir):
+                sanitized.append(line)
+                index += 1
+                continue
+
+            index += 1
+            while index < len(lines):
+                next_line = lines[index]
+                if next_line.startswith('   :') or next_line.startswith('      '):
+                    index += 1
+                    continue
+                break
+
+        return '\n'.join(sanitized) + ('\n' if content.endswith('\n') else '')
+
+    def _sanitize_org_content(self, content: str, input_dir: Path) -> str:
+        def replace_file_link(match: re.Match[str]) -> str:
+            target = match.group(1)
+            if self._resource_exists(target, input_dir):
+                return match.group(0)
+            return ''
+
+        return re.sub(r'\[\[file:([^\]]+)\]\]', replace_file_link, content)
+
+    def _sanitize_muse_content(self, content: str, input_dir: Path) -> str:
+        def replace_link(match: re.Match[str]) -> str:
+            target = match.group(1)
+            label = match.group(2)
+            if self._resource_exists(target, input_dir):
+                return match.group(0)
+            return label or ''
+
+        content = re.sub(r'\[\[(?!URL:)([^\]\[]+?\.(?:png|jpe?g|gif|svg))\]\[([^\]]*)\]\]', replace_link, content, flags=re.IGNORECASE)
+        content = re.sub(r'\[\[URL:(https?://[^\]]+\.(?:png|jpe?g|gif|svg))\]\]', '', content, flags=re.IGNORECASE)
+        return content
+
+    def _prepare_input_file(self) -> tuple[str, Optional[str]]:
+        input_path = Path(self.input_file).resolve()
+        input_dir = input_path.parent
+
+        if self.input_type.lower() not in {'rst', 'org', 'muse'}:
+            return self.input_file, None
+
+        with open(input_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        if self.input_type.lower() == 'rst':
+            sanitized = self._sanitize_rst_content(content, input_dir)
+        elif self.input_type.lower() == 'org':
+            sanitized = self._sanitize_org_content(content, input_dir)
+        else:
+            sanitized = self._sanitize_muse_content(content, input_dir)
+
+        if sanitized == content:
+            return self.input_file, None
+
+        temp_file = tempfile.NamedTemporaryFile(
+            mode='w',
+            encoding='utf-8',
+            suffix=input_path.suffix,
+            delete=False,
+        )
+        with temp_file:
+            temp_file.write(sanitized)
+
+        return temp_file.name, temp_file.name
+
     def convert(self, overwrite: bool = True, quality: Optional[str] = None) -> list[str]:
         """
         Convert the input document to the output format using pypandoc.
@@ -236,13 +327,16 @@ class PyPandocConverter(ConverterInterface):
         if not overwrite and os.path.exists(output_file):
             return [output_file]
 
+        temp_input_file = None
+
         try:
             input_pandoc_fmt = self._get_pandoc_input_format(self.input_type)
             output_pandoc_fmt = self._get_pandoc_output_format(self.output_type)
             extra_args = self._build_extra_args()
+            conversion_input_file, temp_input_file = self._prepare_input_file()
 
             pypandoc.convert_file(
-                self.input_file,
+                conversion_input_file,
                 output_pandoc_fmt,
                 format=input_pandoc_fmt,
                 outputfile=output_file,
@@ -260,3 +354,6 @@ class PyPandocConverter(ConverterInterface):
             raise
         except Exception as e:
             raise RuntimeError(f"Document conversion failed: {str(e)}")
+        finally:
+            if temp_input_file and os.path.exists(temp_input_file):
+                os.unlink(temp_input_file)
