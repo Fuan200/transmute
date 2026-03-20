@@ -146,30 +146,50 @@ function FileTable({
                 )}
               </th>
             )}
-            <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-text transition"
-              onClick={() => handleSort('filename')}
+            <th 
+              className="px-4 py-3"
+              aria-sort={sortColumn === 'filename' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              Filename <SortIcon column="filename" />
+              <button
+                onClick={() => handleSort('filename')}
+                className="flex items-center gap-1 hover:text-text transition uppercase"
+              >
+                Filename <SortIcon column="filename" />
+              </button>
             </th>
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-text transition"
-              onClick={() => handleSort('type')}
+              className="px-4 py-3"
+              aria-sort={sortColumn=== 'type' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              Format <SortIcon column="type" />
+              <button
+                onClick={() => handleSort('type')}
+                className="flex items-center gap-1 hover:text-text transition uppercase"
+              >
+                Format <SortIcon column="type" />
+              </button>
             </th>
             <th
-              className="px-4 py-3 cursor-pointer select-none hover:text-text transition"
-              onClick={() => handleSort('size')}
+              className="px-4 py-3"
+              aria-sort={sortColumn=== 'size' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              Size <SortIcon column="size" />
+              <button
+                onClick={() => handleSort('size')}
+                className="flex items-center gap-1 hover:text-text transition uppercase"
+              >
+                Size <SortIcon column="size" />
+              </button>
             </th>
             {showDate && (
               <th
-                className="px-4 py-3 cursor-pointer select-none hover:text-text transition"
-                onClick={() => handleSort('date')}
+                className="px-4 py-3"
+                aria-sort={sortColumn=== 'date' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
-                Date <SortIcon column="date" />
+                <button
+                  onClick={() => handleSort('date')}
+                  className="flex items-center gap-1 hover:text-text transition uppercase"
+                >
+                  Date <SortIcon column="date" />
+                </button>
               </th>
             )}
             {hasActions && (
