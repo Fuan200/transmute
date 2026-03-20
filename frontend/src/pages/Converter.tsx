@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { FaSyncAlt, FaDownload, FaTimes } from 'react-icons/fa'
 import FileTable, { FileInfo, ConversionInfo } from '../components/FileTable'
 import PreviewModal, { isPreviewable } from '../components/PreviewModal'
 import { authFetch as fetch } from '../utils/api'
@@ -467,7 +468,7 @@ function Converter() {
 
   // File list view - shown once files have been selected
   return (
-    <div className="min-h-screen bg-gradient-to-br from-surface-dark to-surface-light p-8">
+    <div className="min-h-screen bg-gradient-to-br from-surface-dark to-surface-light p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-primary mb-6">Transmute</h1>
 
@@ -516,30 +517,32 @@ function Converter() {
         {/* Pending conversions section */}
         {hasPendingFiles && (
           <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-text">
-                Pending Conversions ({pendingFiles.length})
+            <div className="flex justify-between items-center mb-4 gap-2">
+              <h2 className="text-base sm:text-xl font-semibold text-text whitespace-nowrap">
+                Pending ({pendingFiles.length})
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={handleConvertAll}
                   disabled={converting || pendingFiles.length === 0}
-                  className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-text font-semibold py-2 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 sm:gap-2 bg-primary hover:bg-primary-dark text-text font-semibold py-2 px-3 sm:px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
-                  <span>
+                  <FaSyncAlt className={`text-xs sm:text-sm ${converting ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">
                     {converting
                       ? `Converting ${pendingFiles.length} file${pendingFiles.length > 1 ? 's' : ''}...`
                       : `Convert ${pendingFiles.length} File${pendingFiles.length > 1 ? 's' : ''}`}
                   </span>
-                  <HotkeyHint label={hotkeyLabels.convert} className="text-text/80" />
+                  <HotkeyHint label={hotkeyLabels.convert} className="text-text/80 hidden sm:inline" />
                 </button>
                 <button
                   onClick={() => setPendingFiles([])}
                   disabled={converting}
-                  className="flex items-center gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 sm:gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-3 sm:px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>Clear</span>
-                  <HotkeyHint label={hotkeyLabels.clear} />
+                  <FaTimes className="text-xs sm:text-sm" />
+                  <span className="hidden sm:inline">Clear</span>
+                  <HotkeyHint label={hotkeyLabels.clear} className="hidden sm:inline" />
                 </button>
               </div>
             </div>
@@ -565,25 +568,32 @@ function Converter() {
         {/* Completed conversions section */}
         {hasCompletedConversions && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-text">
-                Completed Conversions ({completedConversions.length})
+            <div className="flex justify-between items-center mb-4 gap-2">
+              <h2 className="text-base sm:text-xl font-semibold text-text whitespace-nowrap">
+                Completed ({completedConversions.length})
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {completedConversions.length > 1 && (
                   <button
                     onClick={handleDownloadAll}
                     disabled={downloadingAll}
-                    className="bg-success hover:bg-success-dark text-white font-semibold py-2 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 sm:gap-2 bg-success hover:bg-success-dark text-white font-semibold py-2 px-3 sm:px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
-                    {downloadingAll ? 'Downloading...' : `Download All ${completedConversions.length} Files`}
+                    <FaDownload className="text-xs sm:text-sm" />
+                    <span className="hidden sm:inline">
+                      {downloadingAll ? 'Downloading...' : `Download All ${completedConversions.length} Files`}
+                    </span>
+                    <span className="sm:hidden">
+                      {downloadingAll ? '...' : 'All'}
+                    </span>
                   </button>
                 )}
                 <button
                   onClick={() => setCompletedConversions([])}
-                  className="text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-4 rounded-lg transition duration-200"
+                  className="flex items-center gap-1.5 sm:gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-3 sm:px-4 rounded-lg transition duration-200"
                 >
-                  Clear
+                  <FaTimes className="text-xs sm:text-sm" />
+                  <span className="hidden sm:inline">Clear</span>
                 </button>
               </div>
             </div>

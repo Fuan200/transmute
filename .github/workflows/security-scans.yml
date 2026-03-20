@@ -1,19 +1,13 @@
-name: Bandit Security Scan
+name: Security Scans
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/bandit-scan.yml'
+    branches: ["main"]
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/bandit-scan.yml'
+    branches: ["main"]
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   bandit-scan:
@@ -39,6 +33,7 @@ jobs:
           pip install bandit bandit-sarif-formatter
           
       - name: Run bandit scan
+        # Bandit is a security linter for Python code that identifies common security issues in Python codebases.
         id: bandit-scan
         run: |
           bandit -r backend/ -x backend/tests -f sarif -o ${{ runner.temp }}/bandit-report.sarif
@@ -50,3 +45,7 @@ jobs:
         with:
           sarif_file: ${{ runner.temp }}/bandit-report.sarif
           category: bandit-python-security
+
+      - name: Run zizmor  # Uploads results to GitHub Advanced Security automatically
+        # Zizmor is a static analysis tool that detects potential vulnerabilities in GitHub actions and workflows.
+        uses: zizmorcore/zizmor-action@0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d  # v0.5.0

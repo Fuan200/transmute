@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FaCheckSquare, FaSquare, FaSort, FaSortUp, FaSortDown, FaDownload, FaTrash, FaEye } from 'react-icons/fa'
 import { stripExtension } from '../utils/filename'
+import FormatDropdown from './FormatDropdown'
 
 export interface FileInfo {
   id: string
@@ -243,16 +244,12 @@ function FileTable({
               <td className="px-4 py-3 whitespace-nowrap">
                   {(row.conversion || row.selectedFormat) ? (
                     isPending && row.file.compatible_formats && row.file.compatible_formats.length > 0 && row.onFormatChange ? (
-                      <select
+                      <FormatDropdown
                         value={row.selectedFormat || ''}
-                        onChange={(e) => row.onFormatChange!(e.target.value)}
-                        className="text-xs font-mono uppercase bg-primary/20 px-2 py-0.5 rounded text-primary border-none focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                        formats={row.file.compatible_formats!}
+                        onChange={(format) => row.onFormatChange!(format)}
                         title={`${row.file.media_type} → ${row.selectedFormat || ''}`}
-                      >
-                        {[...row.file.compatible_formats].sort().map(format => (
-                          <option key={format} value={format}>{format}</option>
-                        ))}
-                      </select>
+                      />
                     ) : (
                       <span
                         className="text-xs font-mono uppercase bg-primary/20 px-2 py-0.5 rounded text-primary"
