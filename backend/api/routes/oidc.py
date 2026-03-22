@@ -2,6 +2,7 @@ import secrets
 import time
 import uuid
 
+import httpx
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -17,10 +18,82 @@ from db.user_identity_db import UserIdentityDB
 router = APIRouter(prefix="/oidc", tags=["oidc"])
 
 _oauth: OAuth | None = None
+_metadata_cache: dict | None = None
 
 # Short-lived, single-use code store: code -> (jwt, expiry_timestamp)
 _pending_codes: dict[str, tuple[str, int, float]] = {}
 _CODE_TTL_SECONDS = 60
+
+
+def _internal_base() -> str:
+    """Return the origin the backend should use for server-to-server calls."""
+    settings = get_settings()
+    url = settings.oidc_internal_url or settings.oidc_issuer_url
+    return _origin(url)
+
+
+def _external_base() -> str:
+    """Return the public origin the browser uses."""
+    return _origin(get_settings().oidc_issuer_url)
+
+
+def _origin(url: str) -> str:
+    """Extract scheme + host + port from a URL (e.g. 'http://host:9000')."""
+    from urllib.parse import urlparse
+    p = urlparse(url)
+    return f"{p.scheme}://{p.netloc}"
+
+
+def _to_internal(url: str) -> str:
+    """Rewrite a URL from the external (public) base to the internal (container) base."""
+    ext = _external_base()
+    internal = _internal_base()
+    if ext != internal and url.startswith(ext):
+        return internal + url[len(ext):]
+    return url
+
+
+def _to_external(url: str) -> str:
+    """Rewrite a URL from the internal (container) base to the external (public) base."""
+    ext = _external_base()
+    internal = _internal_base()
+    if ext != internal and url.startswith(internal):
+        return ext + url[len(internal):]
+    return url
+
+
+async def _load_metadata() -> dict:
+    """Fetch and cache OIDC discovery metadata, rewriting URLs as needed.
+
+    Since we fetch from the internal URL, all endpoints in the response use
+    the internal hostname.  Browser-facing endpoints must be rewritten to
+    the public URL; server-to-server endpoints stay internal.
+    """
+    global _metadata_cache
+    if _metadata_cache is not None:
+        return _metadata_cache
+
+    settings = get_settings()
+    metadata_url = f"{(settings.oidc_internal_url or settings.oidc_issuer_url).rstrip('/')}/.well-known/openid-configuration"
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(metadata_url)
+        resp.raise_for_status()
+        metadata = resp.json()
+
+    # Browser-facing endpoints: rewrite internal → external (public) URL
+    for key in ("authorization_endpoint", "end_session_endpoint"):
+        if key in metadata:
+            metadata[key] = _to_external(metadata[key])
+
+    # Server-to-server endpoints are already internal from the fetch, but
+    # ensure they use the internal base in case the provider returns a
+    # different canonical URL.
+    for key in ("token_endpoint", "userinfo_endpoint", "jwks_uri", "introspection_endpoint", "revocation_endpoint"):
+        if key in metadata:
+            metadata[key] = _to_internal(metadata[key])
+
+    _metadata_cache = metadata
+    return metadata
 
 
 def _get_oauth() -> OAuth:
@@ -35,7 +108,6 @@ def _get_oauth() -> OAuth:
         name="oidc",  # nosec B106 - this is not a secret, just an identifier for the provider configuration
         client_id=settings.oidc_client_id,
         client_secret=settings.oidc_client_secret,
-        server_metadata_url=f"{settings.oidc_issuer_url.rstrip('/')}/.well-known/openid-configuration",
         token_endpoint_auth_method="client_secret_post",
         client_kwargs={"scope": "openid email profile"},
     )
@@ -64,6 +136,9 @@ async def oidc_login(request: Request):
         raise HTTPException(status_code=404, detail="OIDC is not configured")
 
     oauth = _get_oauth()
+    metadata = await _load_metadata()
+    oauth.oidc.server_metadata = metadata
+
     redirect_uri = str(request.url_for("oidc_callback"))
     # Store a CSRF nonce in the session
     nonce = secrets.token_urlsafe(32)
@@ -83,6 +158,8 @@ async def oidc_callback(
 
     settings = get_settings()
     oauth = _get_oauth()
+    metadata = await _load_metadata()
+    oauth.oidc.server_metadata = metadata
 
     token = await oauth.oidc.authorize_access_token(request)
     nonce = request.session.pop("oidc_nonce", None)

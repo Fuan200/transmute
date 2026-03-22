@@ -50,6 +50,7 @@ class Settings(BaseSettings):
 
     # ===== OIDC (optional) =====
     oidc_issuer_url: str = ""
+    oidc_internal_url: str = ""  # Backend-to-provider URL (for Docker); falls back to oidc_issuer_url
     oidc_client_id: str = ""
     oidc_client_secret: str = ""
     oidc_display_name: str = "SSO"
