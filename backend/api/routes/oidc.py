@@ -139,7 +139,8 @@ async def oidc_login(request: Request):
     metadata = await _load_metadata()
     oauth.oidc.server_metadata = metadata
 
-    redirect_uri = str(request.url_for("oidc_callback"))
+    settings = get_settings()
+    redirect_uri = settings.oidc_redirect_uri or str(request.url_for("oidc_callback"))
     # Store a CSRF nonce in the session
     nonce = secrets.token_urlsafe(32)
     request.session["oidc_nonce"] = nonce

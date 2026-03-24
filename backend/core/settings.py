@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     oidc_internal_url: str = ""  # Backend-to-provider URL (for Docker); falls back to oidc_issuer_url
     oidc_client_id: str = ""
     oidc_client_secret: str = ""
+    oidc_redirect_uri: str = ""  # Explicit callback URL; required when behind a reverse proxy
     oidc_display_name: str = "SSO"
     oidc_auto_create_users: bool = True
 
