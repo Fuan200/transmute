@@ -12,7 +12,7 @@ RUN npm run build
 FROM python:3.13-slim
 
 ARG BUILD_VERSION="dev"
-ARG CALIBRE_VERSION="9.5.0"
+ARG CALIBRE_VERSION="9.6.0"
 ARG PANDOC_VERSION="3.9"
 ARG DRAWIO_VERSION="29.6.1"
 
@@ -62,7 +62,8 @@ RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
       *) echo "Unsupported architecture for pandoc: $ARCH" >&2; exit 1 ;; \
     esac && \
     PANDOC_URL="https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-${PANDOC_ARCH}.tar.gz" && \
-    wget -q "$PANDOC_URL" -O /tmp/pandoc.tar.gz && \
+    wget --tries=3 --waitretry=5 --retry-connrefused \
+         "$PANDOC_URL" -O /tmp/pandoc.tar.gz && \
     tar -xzf /tmp/pandoc.tar.gz -C /tmp && \
     cp /tmp/pandoc-${PANDOC_VERSION}/bin/pandoc /usr/local/bin/pandoc && \
     chmod +x /usr/local/bin/pandoc && \
@@ -77,7 +78,8 @@ RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
       *) echo "Unsupported architecture for drawio: $ARCH" >&2; exit 1 ;; \
     esac && \
     DRAWIO_URL="https://github.com/jgraph/drawio-desktop/releases/download/v${DRAWIO_VERSION}/drawio-${DRAWIO_ARCH}-${DRAWIO_VERSION}.deb"; \
-    wget -q "$DRAWIO_URL" -O /tmp/drawio.deb && \
+    wget --tries=3 --waitretry=5 --retry-connrefused \
+         "$DRAWIO_URL" -O /tmp/drawio.deb && \
     apt-get update && apt-get install -y /tmp/drawio.deb && \
     rm /tmp/drawio.deb && \
     rm -rf /var/lib/apt/lists/*
@@ -90,7 +92,8 @@ RUN ARCH="${TARGETARCH:-$(dpkg --print-architecture)}" && \
       *) echo "Unsupported architecture for calibre: $ARCH" >&2; exit 1 ;; \
     esac && \
     CALIBRE_URL="https://github.com/kovidgoyal/calibre/releases/download/v${CALIBRE_VERSION}/calibre-${CALIBRE_VERSION}-${CALIBRE_ARCH}.txz" && \
-    wget -q "$CALIBRE_URL" -O /tmp/calibre.txz && \
+    wget --tries=3 --waitretry=5 --retry-connrefused \
+         "$CALIBRE_URL" -O /tmp/calibre.txz && \
     mkdir -p /opt/calibre && \
     tar -xJf /tmp/calibre.txz -C /opt/calibre && \
     ln -sf /opt/calibre/ebook-convert /usr/bin/ebook-convert && \
