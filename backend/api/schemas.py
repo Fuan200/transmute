@@ -4,6 +4,7 @@ from typing import Literal, Optional
 
 class ConversionRequest(BaseModel):
     id: str = Field(..., example="123e4567-e89b-12d3-a456-426614174000", description="ID of file to convert")
+    quality: Optional[str] = Field(None, example="medium", description="Optional quality setting for conversion (e.g. low, medium, high)")
     output_format: str = Field(..., example="png", description="Target format for conversion")
 
 

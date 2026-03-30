@@ -110,7 +110,7 @@ def create_conversion(
     # Perform the conversion using the converter interface
     converter: ConverterInterface = converter_type(og_metadata['storage_path'], f'{TEMP_DIR}/', input_format, output_format)
     try:
-        output_files = converter.convert()
+        output_files = converter.convert(quality=conversion_request.quality)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Conversion failed: {str(e)}")
     moved_output_file = Path(output_files[0]).rename(f'{CONVERTED_DIR}/{converted_id}{output_extension}')
