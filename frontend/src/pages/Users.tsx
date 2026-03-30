@@ -178,7 +178,10 @@ function Users() {
 
         <form onSubmit={handleCreate} className="grid gap-4 bg-surface-light rounded-xl p-6 mb-6 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-text">Username</label>
+            <label className="mb-2 block text-sm font-medium text-text">
+              Username
+              <span aria-hidden="true" className="text-red-500 text-lg font-semibold">*</span>
+            </label>
             <input value={createDraft.username} onChange={event => setCreateDraft(prev => ({ ...prev, username: event.target.value }))} className="w-full rounded-lg border border-surface-light bg-surface-dark px-4 py-3 text-sm text-text outline-none focus:ring-2 focus:ring-primary/20" required />
           </div>
           <div>
@@ -197,7 +200,10 @@ function Users() {
             </select>
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-text">Password</label>
+            <label className="mb-2 block text-sm font-medium text-text">
+              Password
+              <span aria-hidden="true" className="text-red-500 text-lg font-semibold">*</span>
+            </label>
             <PasswordField value={createDraft.password} onChange={event => setCreateDraft(prev => ({ ...prev, password: event.target.value }))} inputClassName="rounded-lg border border-surface-light bg-surface-dark px-4 py-3 text-sm text-text outline-none focus:ring-2 focus:ring-primary/20" toggleButtonClassName="rounded-lg border border-surface-light bg-surface-dark px-4 text-text-muted transition hover:bg-primary/20 hover:text-primary-light focus:outline-none focus:ring-2 focus:ring-primary/20" required minLength={8} />
             <p className="mt-1 text-xs text-text-muted">Must be at least 8 characters.</p>
           </div>
