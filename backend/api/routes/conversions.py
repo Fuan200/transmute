@@ -124,6 +124,8 @@ def create_conversion(
     converted_metadata['sha256_checksum'] = compute_sha256_checksum(moved_output_file)
     converted_metadata['user_id'] = current_user["uuid"]
     converted_metadata.pop('created_at', None)  # Remove created_at from original metadata if it exists
+    if conversion_request.quality:
+        converted_metadata['quality'] = conversion_request.quality
     conversion_db.insert_file_metadata(converted_metadata)
     # Store relation with denormalized original file metadata
     conversion_relations_db.insert_conversion_relation({
