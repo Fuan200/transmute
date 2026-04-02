@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 
 from core.auth import decode_access_token, verify_password
-from db import FileDB, ConversionDB, ConversionRelationsDB, SettingsDB, DefaultFormatsDB, UserDB, ApiKeyDB, UserIdentityDB
+from db import FileDB, ConversionDB, ConversionRelationsDB, SettingsDB, DefaultFormatsDB, DefaultQualitiesDB, UserDB, ApiKeyDB, UserIdentityDB
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/users/token", auto_error=False)
@@ -184,3 +184,11 @@ def _default_formats_db() -> DefaultFormatsDB:
 def get_default_formats_db() -> DefaultFormatsDB:
     """Dependency that provides a shared DefaultFormatsDB instance."""
     return _default_formats_db()
+
+@lru_cache(maxsize=1)
+def _default_qualities_db() -> DefaultQualitiesDB:
+    return DefaultQualitiesDB()
+
+def get_default_qualities_db() -> DefaultQualitiesDB:
+    """Dependency that provides a shared DefaultQualitiesDB instance."""
+    return _default_qualities_db()

@@ -39,6 +39,8 @@ def list_converters():
             "name": name,
             "supported_input_formats": supported_input_formats,
             "supported_output_formats": supported_output_formats,
+            "formats_with_qualities": list(converter_class.get_formats_with_quality_options()),
+            "qualities": list(converter_class.get_quality_options()),
         }
         converters.append(converter_item)
     return {"converters": converters}

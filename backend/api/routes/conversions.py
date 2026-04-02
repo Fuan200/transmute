@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from converters import ConverterInterface
 from registry import registry
 from core import get_settings, sanitize_extension, delete_file_and_metadata, validate_safe_path, compute_sha256_checksum, media_type_extensions
-from db import ConversionDB, FileDB, ConversionRelationsDB, SettingsDB
-from api.deps import get_current_active_user, get_file_db, get_conversion_db, get_conversion_relations_db, get_settings_db
+from db import ConversionDB, FileDB, ConversionRelationsDB, SettingsDB, DefaultQualitiesDB
+from api.deps import get_current_active_user, get_file_db, get_conversion_db, get_conversion_relations_db, get_settings_db, get_default_qualities_db
 from api.schemas import ConversionRequest, ConversionListResponse, FileMetadata, ErrorResponse, FileDeleteResponse
 
 
@@ -80,6 +80,7 @@ def create_conversion(
     conversion_db: ConversionDB = Depends(get_conversion_db),
     conversion_relations_db: ConversionRelationsDB = Depends(get_conversion_relations_db),
     settings_db: SettingsDB = Depends(get_settings_db),
+    default_qualities_db: DefaultQualitiesDB = Depends(get_default_qualities_db),
     current_user: dict = Depends(get_current_active_user),
 ):
     """Create a new conversion for a previously uploaded file."""
@@ -109,8 +110,13 @@ def create_conversion(
 
     # Perform the conversion using the converter interface
     converter: ConverterInterface = converter_type(og_metadata['storage_path'], f'{TEMP_DIR}/', input_format, output_format)
+    quality = conversion_request.quality
+    if quality is None:
+        default_quality = default_qualities_db.get(current_user["uuid"], output_format)
+        if default_quality:
+            quality = default_quality["quality"]
     try:
-        output_files = converter.convert(quality=conversion_request.quality)
+        output_files = converter.convert(quality=quality)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Conversion failed: {str(e)}")
     moved_output_file = Path(output_files[0]).rename(f'{CONVERTED_DIR}/{converted_id}{output_extension}')
@@ -124,12 +130,12 @@ def create_conversion(
     converted_metadata['sha256_checksum'] = compute_sha256_checksum(moved_output_file)
     converted_metadata['user_id'] = current_user["uuid"]
     converted_metadata.pop('created_at', None)  # Remove created_at from original metadata if it exists
-    if conversion_request.quality:
-        converted_metadata['quality'] = conversion_request.quality
+    if quality:
+        converted_metadata['quality'] = quality
     conversion_db.insert_file_metadata(converted_metadata)
     # Re-add quality after insert (insert_file_metadata pops it)
-    if conversion_request.quality:
-        converted_metadata['quality'] = conversion_request.quality
+    if quality:
+        converted_metadata['quality'] = quality
     # Store relation with denormalized original file metadata
     conversion_relations_db.insert_conversion_relation({
         'original_file_id': og_id,

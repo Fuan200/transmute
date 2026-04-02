@@ -53,9 +53,10 @@ function Converter() {
   const [dragOver, setDragOver] = useState(false)
   const [defaultFormats, setDefaultFormats] = useState<Record<string, string>>({})
   const [formatAliases, setFormatAliases] = useState<Record<string, string>>({})
+  const [defaultQualities, setDefaultQualities] = useState<Record<string, string>>({})
   const [previewFile, setPreviewFile] = useState<{ id: string; filename: string; mediaType: string } | null>(null)
 
-  // Load auto-download setting and default format mappings
+  // Load auto-download setting, default format mappings, and default quality mappings
   useEffect(() => {
     fetch('/api/settings')
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -68,6 +69,14 @@ function Converter() {
         for (const d of data.defaults) map[d.input_format] = d.output_format
         setDefaultFormats(map)
         setFormatAliases(data.aliases || {})
+      })
+      .catch(() => {})
+    fetch('/api/default-qualities')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: { defaults: { output_format: string; quality: string }[] }) => {
+        const map: Record<string, string> = {}
+        for (const d of data.defaults) map[d.output_format] = d.quality
+        setDefaultQualities(map)
       })
       .catch(() => {})
   }, [])
@@ -87,10 +96,13 @@ function Converter() {
           ? userDefault
           : sortedFormats[0] || ''
         const qualities = (selectedFormat && file.compatible_formats?.[selectedFormat]) || []
+        const defaultQuality = defaultQualities[selectedFormat]
         return {
           file,
           selectedFormat,
-          selectedQuality: qualities.includes('medium') ? 'medium' : undefined,
+          selectedQuality: qualities.length > 0
+            ? (defaultQuality && qualities.includes(defaultQuality) ? defaultQuality : (qualities.includes('medium') ? 'medium' : undefined))
+            : undefined,
           status: 'pending',
         }
       })
@@ -98,7 +110,7 @@ function Converter() {
       // Clear the location state to prevent re-adding on refresh
       navigate(location.pathname, { replace: true })
     }
-  }, [location.state, location.pathname, navigate, defaultFormats, formatAliases])
+  }, [location.state, location.pathname, navigate, defaultFormats, formatAliases, defaultQualities])
 
   const processFiles = async (files: File[]) => {
     if (files.length === 0) return
@@ -142,10 +154,13 @@ function Converter() {
         : sortedFormats[0] || ''
 
       const qualities = (defaultFormat && fileInfo.compatible_formats?.[defaultFormat]) || []
+      const defaultQualityForFormat = defaultQualities[defaultFormat]
       const pending: PendingFile = {
         file: fileInfo,
         selectedFormat: defaultFormat,
-        selectedQuality: qualities.includes('medium') ? 'medium' : undefined,
+        selectedQuality: qualities.length > 0
+          ? (defaultQualityForFormat && qualities.includes(defaultQualityForFormat) ? defaultQualityForFormat : (qualities.includes('medium') ? 'medium' : undefined))
+          : undefined,
         status: 'pending',
       }
 
@@ -198,7 +213,11 @@ function Converter() {
       prev.map((pf) => {
         if (pf.file.id !== fileId) return pf
         const qualities = pf.file.compatible_formats?.[format] || []
-        return { ...pf, selectedFormat: format, selectedQuality: qualities.includes('medium') ? 'medium' : undefined, status: 'pending', errorMessage: undefined }
+        const dq = defaultQualities[format]
+        const selectedQuality = qualities.length > 0
+          ? (dq && qualities.includes(dq) ? dq : (qualities.includes('medium') ? 'medium' : undefined))
+          : undefined
+        return { ...pf, selectedFormat: format, selectedQuality, status: 'pending', errorMessage: undefined }
       })
     )
   }

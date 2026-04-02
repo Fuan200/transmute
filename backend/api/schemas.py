@@ -42,6 +42,8 @@ class ConverterMetadata(BaseModel):
     name: str = Field(..., example="drawio_convert")
     supported_input_formats: list[str] = Field(..., example=["drawio"])
     supported_output_formats: list[str] = Field(..., example=["png", "pdf", "jpg"])
+    formats_with_qualities: list[str] = Field(..., example=["jpeg"], description="Output formats that support quality options")
+    qualities: list[str] = Field(..., example=["low", "medium", "high"], description="Available quality levels")
 
 class ConverterMetadataListResponse(BaseModel):
     converters: list[ConverterMetadata] = Field(..., description="List of the available converters")
@@ -114,6 +116,15 @@ class DefaultFormatMapping(BaseModel):
 class DefaultFormatListResponse(BaseModel):
     defaults: list[DefaultFormatMapping] = Field(..., description="List of default format mappings")
     aliases: dict[str, str] = Field(..., description="Format alias map (e.g. jpg -> jpeg)")
+
+
+class DefaultQualityMapping(BaseModel):
+    output_format: str = Field(..., example="jpeg", description="Output file format")
+    quality: str = Field(..., example="high", description="Default quality level")
+
+
+class DefaultQualityListResponse(BaseModel):
+    defaults: list[DefaultQualityMapping] = Field(..., description="List of default quality mappings")
 
 
 class UserResponse(BaseModel):

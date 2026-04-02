@@ -16,10 +16,17 @@ interface DefaultFormatMapping {
   output_format: string
 }
 
+interface DefaultQualityMapping {
+  output_format: string
+  quality: string
+}
+
 interface ConverterInfo {
   name: string
   supported_input_formats: string[]
   supported_output_formats: string[]
+  formats_with_qualities: string[]
+  qualities: string[]
 }
 
 const THEMES: Theme[] = [
@@ -87,12 +94,20 @@ function Settings() {
   const [newInputFormat, setNewInputFormat] = useState('')
   const [newOutputFormat, setNewOutputFormat] = useState('')
 
+  // Default quality mappings
+  const [defaultQualities, setDefaultQualities] = useState<DefaultQualityMapping[]>([])
+  const [qualityFormatsMap, setQualityFormatsMap] = useState<Record<string, string[]>>({})
+  const [newQualityFormat, setNewQualityFormat] = useState('')
+  const [newQuality, setNewQuality] = useState('')
+
   // Build conversion map from converters API (input_format -> sorted output_formats)
+  // and quality formats map (output_format -> sorted quality_options)
   const loadConversionMap = useCallback(() => {
     fetch('/api/converters')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((data: { converters: ConverterInfo[] }) => {
         const map: Record<string, Set<string>> = {}
+        const qMap: Record<string, Set<string>> = {}
         for (const c of data.converters) {
           for (const inp of c.supported_input_formats) {
             for (const out of c.supported_output_formats) {
@@ -102,12 +117,24 @@ function Settings() {
               }
             }
           }
+          for (const fmt of (c.formats_with_qualities || [])) {
+            if (!qMap[fmt]) qMap[fmt] = new Set()
+            for (const q of (c.qualities || [])) {
+              qMap[fmt].add(q)
+            }
+          }
         }
         const sorted: Record<string, string[]> = {}
         for (const [k, v] of Object.entries(map)) {
           sorted[k] = [...v].sort()
         }
         setConversionMap(sorted)
+        const qualityOrder: Record<string, number> = { low: 0, medium: 1, high: 2 }
+        const sortedQ: Record<string, string[]> = {}
+        for (const [k, v] of Object.entries(qMap)) {
+          sortedQ[k] = [...v].sort((a, b) => (qualityOrder[a] ?? 99) - (qualityOrder[b] ?? 99))
+        }
+        setQualityFormatsMap(sortedQ)
       })
       .catch(() => {})
   }, [])
@@ -116,6 +143,13 @@ function Settings() {
     fetch('/api/default-formats')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((data: { defaults: DefaultFormatMapping[] }) => setDefaultFormats(data.defaults))
+      .catch(() => {})
+  }, [])
+
+  const loadDefaultQualities = useCallback(() => {
+    fetch('/api/default-qualities')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: { defaults: DefaultQualityMapping[] }) => setDefaultQualities(data.defaults))
       .catch(() => {})
   }, [])
 
@@ -134,7 +168,8 @@ function Settings() {
       .catch(() => setLoaded(true)) // fall back to defaults silently
     loadConversionMap()
     loadDefaultFormats()
-  }, [setTheme, loadConversionMap, loadDefaultFormats])
+    loadDefaultQualities()
+  }, [setTheme, loadConversionMap, loadDefaultFormats, loadDefaultQualities])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -212,6 +247,47 @@ function Settings() {
     }
   }
 
+  const handleAddDefaultQuality = async () => {
+    if (!newQualityFormat || !newQuality) return
+    try {
+      const response = await fetch('/api/default-qualities', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ output_format: newQualityFormat, quality: newQuality }),
+      })
+      if (!response.ok) throw new Error()
+      loadDefaultQualities()
+      setNewQualityFormat('')
+      setNewQuality('')
+    } catch {
+      setError('Failed to save default quality')
+    }
+  }
+
+  const handleUpdateDefaultQuality = async (output_format: string, quality: string) => {
+    try {
+      const response = await fetch('/api/default-qualities', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ output_format, quality }),
+      })
+      if (!response.ok) throw new Error()
+      loadDefaultQualities()
+    } catch {
+      setError('Failed to update default quality')
+    }
+  }
+
+  const handleDeleteDefaultQuality = async (output_format: string) => {
+    try {
+      const response = await fetch(`/api/default-qualities/${encodeURIComponent(output_format)}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error()
+      loadDefaultQualities()
+    } catch {
+      setError('Failed to delete default quality')
+    }
+  }
+
   // Available input formats that don't already have a default set
   const availableInputFormats = Object.keys(conversionMap)
     .filter(f => !defaultFormats.some(d => d.input_format === f))
@@ -219,6 +295,14 @@ function Settings() {
 
   // When the new input format changes, auto-select the first available output
   const newOutputOptions = newInputFormat ? (conversionMap[newInputFormat] || []) : []
+
+  // Available output formats with quality options that don't already have a default set
+  const availableQualityFormats = Object.keys(qualityFormatsMap)
+    .filter(f => !defaultQualities.some(d => d.output_format === f))
+    .sort()
+
+  // When the new quality format changes, auto-select the first available quality
+  const newQualityOptions = newQualityFormat ? (qualityFormatsMap[newQualityFormat] || []) : []
 
   const handleClearConversions = () => {
     setConfirmDialog({
@@ -550,6 +634,91 @@ function Settings() {
             ) : (
               <p className="text-text-muted text-sm">Loading available formats...</p>
             )}
+          </section>
+
+          {/* Default Qualities */}
+          <section className="bg-surface-light rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-text mb-1">Default Qualities</h2>
+            <p className="text-text-muted text-sm mb-4">Set default quality levels for output formats that support quality options. These can still be overridden per file.</p>
+
+            {defaultQualities.length > 0 && (
+              <div className="mb-4 overflow-hidden rounded-lg border border-surface-dark">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-surface-dark">
+                      <th className="text-left text-text-muted font-medium px-4 py-2.5">Output Format</th>
+                      <th className="text-left text-text-muted font-medium px-4 py-2.5">Default Quality</th>
+                      <th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {defaultQualities.map(d => (
+                      <tr key={d.output_format} className="border-t border-surface-dark">
+                        <td className="px-4 py-2.5 text-text font-mono">{d.output_format}</td>
+                        <td className="px-4 py-2.5">
+                          <FormatDropdown
+                            value={d.quality}
+                            formats={qualityFormatsMap[d.output_format] || [d.quality]}
+                            onChange={(quality) => handleUpdateDefaultQuality(d.output_format, quality)}
+                            title={`${d.output_format} quality: ${d.quality}`}
+                            triggerClassName="w-full max-w-[12rem] border border-surface-light bg-surface-dark px-3 py-1.5 text-text"
+                            presorted
+                          />
+                        </td>
+                        <td className="px-2 py-2.5 text-center">
+                          <button
+                            onClick={() => handleDeleteDefaultQuality(d.output_format)}
+                            className="text-text-muted hover:text-primary transition-colors duration-150 p-1"
+                            title="Remove default"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {availableQualityFormats.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <FormatDropdown
+                  value={newQualityFormat}
+                  formats={availableQualityFormats}
+                  onChange={(format) => { setNewQualityFormat(format); setNewQuality('') }}
+                  placeholder="Output format..."
+                  title={newQualityFormat || 'Select output format'}
+                  triggerClassName="min-w-[10rem] border border-surface-light bg-surface-dark px-3 py-2 text-text"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                <FormatDropdown
+                  value={newQuality}
+                  formats={newQualityOptions}
+                  onChange={setNewQuality}
+                  placeholder="Quality..."
+                  title={newQuality || 'Select quality'}
+                  disabled={!newQualityFormat}
+                  triggerClassName="min-w-[10rem] border border-surface-light bg-surface-dark px-3 py-2 text-text"
+                  presorted
+                />
+                <button
+                  onClick={handleAddDefaultQuality}
+                  disabled={!newQualityFormat || !newQuality}
+                  className="bg-primary/20 hover:bg-primary/40 text-primary-light font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add
+                </button>
+              </div>
+            ) : defaultQualities.length > 0 ? (
+              <p className="text-text-muted text-sm">All available formats with quality options have defaults configured.</p>
+            ) : Object.keys(qualityFormatsMap).length === 0 ? (
+              <p className="text-text-muted text-sm">Loading available formats...</p>
+            ) : null}
           </section>
 
         </div>
