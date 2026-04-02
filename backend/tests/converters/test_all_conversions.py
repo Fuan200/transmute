@@ -21,12 +21,12 @@ from registry import registry
 SAMPLES_DIR = Path(__file__).resolve().parents[3] / "assets" / "samples"
 
 
-def _collect_conversion_cases() -> list[tuple[str, str, str]]:
+def _collect_conversion_cases() -> list[tuple[str, str, str, str]]:
     """
-    Walk assets/samples/ and yield (sample_filename, input_format, output_format)
-    tuples for every conversion the registry supports.
+    Walk assets/samples/ and yield (sample_filename, input_format, output_format,
+    converter_name) tuples for every conversion the registry supports.
     """
-    cases: list[tuple[str, str, str]] = []
+    cases: list[tuple[str, str, str, str]] = []
     if not SAMPLES_DIR.is_dir():
         return cases
 
@@ -42,7 +42,9 @@ def _collect_conversion_cases() -> list[tuple[str, str, str]]:
         compatible = registry.get_compatible_formats_and_qualities(input_fmt).keys()
 
         for output_fmt in sorted(compatible):
-            cases.append((sample.name, input_fmt, output_fmt))
+            converter_cls = registry.get_converter_for_conversion(input_fmt, output_fmt)
+            converter_name = converter_cls.__name__ if converter_cls else "Unknown"
+            cases.append((sample.name, input_fmt, output_fmt, converter_name))
 
     return cases
 
@@ -51,11 +53,11 @@ CONVERSION_CASES = _collect_conversion_cases()
 
 
 @pytest.mark.parametrize(
-    "sample_name, input_fmt, output_fmt",
+    "sample_name, input_fmt, output_fmt, converter_name",
     CONVERSION_CASES,
-    ids=[f"{name}:{ifmt}->{ofmt}" for name, ifmt, ofmt in CONVERSION_CASES],
+    ids=[f"{cname}:{name}:{ifmt}->{ofmt}" for name, ifmt, ofmt, cname in CONVERSION_CASES],
 )
-def test_conversion(sample_name, input_fmt, output_fmt, safe_path_test_settings):
+def test_conversion(sample_name, input_fmt, output_fmt, converter_name, safe_path_test_settings):
     """Convert a sample file to every compatible output format."""
     src = SAMPLES_DIR / sample_name
 

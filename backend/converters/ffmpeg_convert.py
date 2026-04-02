@@ -54,15 +54,9 @@ class FFmpegConverter(ConverterInterface):
         'mka',
     }
     formats_with_qualities = {
-        'mp4', 
-        'avi', 
-        'mov', 
-        'mkv', 
-        'webm', 
-        'ts', 
-        '3gp', 
-        'ogv', 
-        'f4v'
+        'mp4', 'avi', 'mov', 'mkv', 'webm', 'ts', '3gp', 'ogv', 'f4v',
+        'm4v', 'flv', 'mpeg', 'wmv', 'asf',
+        'mp3', 'aac', 'wma', 'm4a', 'opus', 'mp2', 'ac3', 'oga',
     }
     supported_input_formats: set = video_formats | audio_formats
     supported_output_formats: set = (video_formats | audio_formats) - _decode_only_formats
@@ -330,15 +324,36 @@ class FFmpegConverter(ConverterInterface):
         if self.output_type in self.audio_formats:
             cmd.append('-vn')
 
-        # Add quality settings for video conversions
-        _quality_video_formats = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'ts', '3gp', 'ogv', 'f4v'}
-        if quality and self.output_type in _quality_video_formats:
+        # Add quality settings for video formats using CRF/preset (libx264-based)
+        _quality_crf_video_formats = {'mp4', 'avi', 'mov', 'mkv', 'webm', 'ts', '3gp', 'ogv', 'f4v', 'm4v'}
+        if quality and self.output_type in _quality_crf_video_formats:
             if quality == 'high':
                 cmd.extend(['-crf', '18', '-preset', 'slow'])
             elif quality == 'medium':
                 cmd.extend(['-crf', '23', '-preset', 'medium'])
             elif quality == 'low':
                 cmd.extend(['-crf', '28', '-preset', 'fast'])
+
+        # Quality settings for video formats whose default codecs use qscale
+        _quality_qscale_video_formats = {'flv', 'mpeg', 'wmv', 'asf'}
+        if quality and self.output_type in _quality_qscale_video_formats:
+            if quality == 'high':
+                cmd.extend(['-q:v', '2'])
+            elif quality == 'medium':
+                cmd.extend(['-q:v', '5'])
+            elif quality == 'low':
+                cmd.extend(['-q:v', '9'])
+
+        # Quality settings for lossy audio formats via bitrate
+        _quality_audio_formats = {'mp3', 'aac', 'wma', 'm4a', 'opus', 'mp2', 'ac3', 'oga'}
+        if quality and self.output_type in _quality_audio_formats:
+            if self.output_type == 'ac3':
+                bitrates = {'high': '448k', 'medium': '256k', 'low': '128k'}
+            else:
+                bitrates = {'high': '320k', 'medium': '192k', 'low': '96k'}
+            bitrate = bitrates.get(quality)
+            if bitrate:
+                cmd.extend(['-b:a', bitrate])
 
         # Animated image formats encode every frame as a full image.  Without
         # constraints a long or high-resolution video produces enormous output
