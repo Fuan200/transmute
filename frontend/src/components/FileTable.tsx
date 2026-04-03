@@ -49,6 +49,11 @@ interface FileTableProps {
   onToggleSelect?: (id: string) => void
   onToggleSelectAll?: () => void
   converting?: boolean
+  className?: string
+  bulkFormats?: string[]
+  bulkQualities?: string[]
+  onBulkFormatChange?: (format: string) => void
+  onBulkQualityChange?: (quality: string) => void
 }
 
 type SortColumn = 'filename' | 'type' | 'size' | 'date'
@@ -74,6 +79,11 @@ function FileTable({
   onToggleSelect,
   onToggleSelectAll,
   converting = false,
+  className,
+  bulkFormats,
+  bulkQualities,
+  onBulkFormatChange,
+  onBulkQualityChange,
 }: FileTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -136,7 +146,7 @@ function FileTable({
   if (rows.length === 0) return null
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-surface-dark">
+    <div className={`overflow-x-auto rounded-lg border border-surface-dark ${className || ''}`}>
       <table className="w-full text-sm text-left">
         <thead className="text-xs uppercase bg-surface-dark text-text-muted">
           <tr>
@@ -168,16 +178,41 @@ function FileTable({
               className="px-4 py-3"
               aria-sort={sortColumn=== 'type' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <button
-                onClick={() => handleSort('type')}
-                className="flex items-center gap-1 hover:text-text transition uppercase"
-              >
-                Format <SortIcon column="type" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSort('type')}
+                  className="flex items-center gap-1 hover:text-text transition uppercase"
+                >
+                  Format <SortIcon column="type" />
+                </button>
+                {bulkFormats && bulkFormats.length > 0 && onBulkFormatChange && (
+                  <FormatDropdown
+                    value=""
+                    formats={bulkFormats}
+                    onChange={onBulkFormatChange}
+                    placeholder="All"
+                    title="Set format for all files"
+                    disabled={converting}
+                  />
+                )}
+              </div>
             </th>
             {hasQuality && (
               <th className="px-4 py-3">
-                <span className="uppercase">Quality</span>
+                <div className="flex items-center gap-2">
+                  <span className="uppercase">Quality</span>
+                  {bulkQualities && bulkQualities.length > 0 && onBulkQualityChange && (
+                    <FormatDropdown
+                      value=""
+                      formats={bulkQualities}
+                      onChange={onBulkQualityChange}
+                      placeholder="All"
+                      title="Set quality for all files"
+                      disabled={converting}
+                      presorted
+                    />
+                  )}
+                </div>
               </th>
             )}
             <th

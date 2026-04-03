@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { FaSyncAlt, FaDownload, FaTimes } from 'react-icons/fa'
 import FileTable, { FileInfo, ConversionInfo } from '../components/FileTable'
@@ -390,6 +390,61 @@ function Converter() {
     await triggerDownloads(completedConversions)
   }
 
+  // Intersection of output formats shared by ALL pending files
+  const commonFormats = useMemo(() => {
+    if (pendingFiles.length === 0) return []
+    const sets = pendingFiles.map(pf =>
+      new Set(pf.file.compatible_formats ? Object.keys(pf.file.compatible_formats) : [])
+    )
+    const first = sets[0]
+    return [...first].filter(f => sets.every(s => s.has(f))).sort()
+  }, [pendingFiles])
+
+  // Intersection of qualities across pending files that have quality options for their selected format
+  const commonQualities = useMemo(() => {
+    const qualityOrder: Record<string, number> = { low: 0, medium: 1, high: 2 }
+    const qualitySets = pendingFiles
+      .map(pf => {
+        if (!pf.selectedFormat) return null
+        const q = pf.file.compatible_formats?.[pf.selectedFormat]
+        return q && q.length > 0 ? new Set(q) : null
+      })
+      .filter((s): s is Set<string> => s !== null)
+    if (qualitySets.length === 0) return []
+    const first = qualitySets[0]
+    return [...first]
+      .filter(q => qualitySets.every(s => s.has(q)))
+      .sort((a, b) => (qualityOrder[a] ?? 99) - (qualityOrder[b] ?? 99))
+  }, [pendingFiles])
+
+  const handleBulkFormatChange = (format: string) => {
+    setPendingFiles(prev =>
+      prev.map(pf => {
+        const formats = pf.file.compatible_formats ? Object.keys(pf.file.compatible_formats) : []
+        if (!formats.includes(format)) return pf
+        // If format isn't changing, preserve existing quality selection
+        if (pf.selectedFormat === format) return pf
+        const qualities = pf.file.compatible_formats?.[format] || []
+        const dq = defaultQualities[format]
+        const selectedQuality = qualities.length > 0
+          ? (dq && qualities.includes(dq) ? dq : (qualities.includes('medium') ? 'medium' : undefined))
+          : undefined
+        return { ...pf, selectedFormat: format, selectedQuality, status: 'pending', errorMessage: undefined }
+      })
+    )
+  }
+
+  const handleBulkQualityChange = (quality: string) => {
+    setPendingFiles(prev =>
+      prev.map(pf => {
+        if (!pf.selectedFormat) return pf
+        const qualities = pf.file.compatible_formats?.[pf.selectedFormat] || []
+        if (qualities.length === 0 || !qualities.includes(quality)) return pf
+        return { ...pf, selectedQuality: quality }
+      })
+    )
+  }
+
   const hasPendingFiles = pendingFiles.length > 0
   const hasCompletedConversions = completedConversions.length > 0
   const hasStarted = hasPendingFiles || hasCompletedConversions
@@ -599,6 +654,10 @@ function Converter() {
                 isPending={true}
                 showDate={false}
                 converting={converting}
+                bulkFormats={pendingFiles.length > 1 ? commonFormats : undefined}
+                bulkQualities={pendingFiles.length > 1 ? commonQualities : undefined}
+                onBulkFormatChange={handleBulkFormatChange}
+                onBulkQualityChange={handleBulkQualityChange}
               />
           </div>
         )}
