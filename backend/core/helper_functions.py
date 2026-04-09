@@ -175,12 +175,52 @@ def detect_pdf_type(file_path: Path) -> str:
     return "pdf"
 
 
+def detect_p7m_content_type(file_path: Path) -> str | None:
+    """
+    Detect the media type of the content embedded inside a PKCS#7/CMS container.
+
+    Extracts the encapsulated content, writes it to a temporary file, and
+    uses libmagic for content-based MIME detection.
+
+    Args:
+        file_path: Path to the .p7m file
+
+    Returns:
+        A lowercase extension string (e.g. "pdf", "xml") or None if
+        detection fails.
+    """
+    import tempfile
+    from converters.pkcs7_convert import PKCS7Converter
+
+    try:
+        raw = file_path.read_bytes()
+        content = PKCS7Converter._extract_content(raw)
+        content = PKCS7Converter._extract_recursive(content)
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        try:
+            mime = magic.from_file(tmp_path, mime=True)
+            ext = mimetypes.guess_extension(mime) or ""
+            detected = ext.lstrip('.').lower()
+            return detected or None
+        finally:
+            os.unlink(tmp_path)
+    except Exception:
+        return None
+
+
 def detect_media_type(file_path: Path) -> str:
     """
     Detect the media type of a file based on its extension.
 
     Falls back to libmagic content-based detection when the file has no
     extension, then maps the resulting MIME type back to an extension string.
+
+    For PKCS#7 containers (.p7m), peeks inside to detect the embedded
+    content type and returns a compound type like ``p7m/pdf``.
 
     Args:
         file_path: Path to the file whose media type should be detected
@@ -194,6 +234,9 @@ def detect_media_type(file_path: Path) -> str:
     if extension == 'pdf':
         # For PDFs, use libmagic to detect specific PDF types (e.g. PDF/A)
         media_type = detect_pdf_type(file_path)
+    elif extension == 'p7m':
+        inner_type = detect_p7m_content_type(file_path)
+        media_type = f"p7m/{inner_type}" if inner_type else "p7m"
     elif not extension:
         # If no extension, try to detect using magic
         media_type = magic.from_file(str(file_path), mime=True)

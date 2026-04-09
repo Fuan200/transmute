@@ -10,6 +10,15 @@ def get_supported_conversions():
     
     for converter_name, converter_class in registry.converters.items():
         for input_format in converter_class.supported_input_formats:
+            # PKCS7Converter has dynamic outputs determined at upload time;
+            # represent it as a single p7m -> "unsigned" entry.
+            if not converter_class.supported_output_formats and input_format == 'p7m':
+                supported_conversions.append({
+                    "converter_name": converter_name,
+                    "input_format": "p7m",
+                    "output_format": "unsigned",
+                })
+                continue
             for output_format in converter_class.supported_output_formats:
                 if input_format != output_format:
                     converter_test = converter_class(input_file="test." + input_format, output_dir=".", input_type=input_format, output_type=output_format)

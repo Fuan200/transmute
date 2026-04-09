@@ -77,13 +77,23 @@ class ConverterRegistry:
         """
         Get the normalized format name for a given format type, using media type aliases.
         
+        Compound types like ``p7m/pdf`` are normalized to their base (``p7m``)
+        when no explicit alias exists, so the registry can look up converters
+        by the container format.
+        
         Args:
             format_type: The input format type (e.g., 'jpg', 'jpeg', 'mp4')
             
         Returns:
             The normalized format name if found, else the original format type
         """
-        return media_type_aliases.get(format_type.lower(), format_type.lower())
+        lower = format_type.lower()
+        normalized = media_type_aliases.get(lower, lower)
+        # Compound types like p7m/pdf: normalize to the base format for
+        # converter lookup, but only when no explicit alias exists.
+        if normalized == lower and '/' in lower and not lower.startswith('pdf/'):
+            return lower.split('/')[0]
+        return normalized
     
     def get_converters_for_input_format(self, format_type) -> list[Type[ConverterInterface]]:
         """
@@ -129,8 +139,16 @@ class ConverterRegistry:
         
         # Find converters that support both formats
         compatible = input_converters & output_converters
-        
-        return compatible.pop() if compatible else None
+        if compatible:
+            return compatible.pop()
+
+        # Fallback: check if any input converter dynamically supports this
+        # output (e.g. PKCS7Converter for compound types like "p7m/pdf").
+        for converter in input_converters:
+            if normalized_output in converter.get_formats_compatible_with(input_format):
+                return converter
+
+        return None
     
     def list_converters(self) -> dict[str, list[str]] :
         """
@@ -167,12 +185,14 @@ class ConverterRegistry:
         # Find all converters that support this format
         converters_for_format = self.get_converters_for_input_format(normalized_format)
         
-        # For each converter, determine valid output formats
+        # For each converter, determine valid output formats.
+        # Pass the original format_type so converters with compound-type
+        # awareness (e.g. PKCS7Converter for "p7m/pdf") can inspect it.
         for converter_class in converters_for_format:
             if not hasattr(converter_class, 'get_formats_compatible_with'):
                 continue
             
-            for compatible_format in converter_class.get_formats_compatible_with(normalized_format):
+            for compatible_format in converter_class.get_formats_compatible_with(format_type):
                 if compatible_format not in compatible:
                     compatible[compatible_format] = set()
                 if compatible_format in converter_class.get_formats_with_quality_options():

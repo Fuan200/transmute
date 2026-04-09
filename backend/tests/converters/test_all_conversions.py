@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from core import get_file_extension
+from core import get_file_extension, detect_media_type
 from registry import registry
 
 SAMPLES_DIR = Path(__file__).resolve().parents[3] / "assets" / "samples"
@@ -38,7 +38,12 @@ def _collect_conversion_cases() -> list[tuple[str, str, str, str]]:
         if not ext:
             continue
 
-        input_fmt = registry.get_normalized_format(ext)
+        # Use detect_media_type for formats that need content inspection
+        # (e.g. p7m containers), otherwise use extension-based lookup.
+        if ext == 'p7m':
+            input_fmt = detect_media_type(sample)
+        else:
+            input_fmt = registry.get_normalized_format(ext)
         compatible = registry.get_compatible_formats_and_qualities(input_fmt).keys()
 
         for output_fmt in sorted(compatible):

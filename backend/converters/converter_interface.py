@@ -65,7 +65,8 @@ class ConverterInterface:
         Returns:
             Set of compatible formats.
         """
-        return cls.supported_output_formats - {format_type.lower()}
+        fmt = media_type_aliases.get(format_type.lower(), format_type.lower())
+        return cls.supported_output_formats - {fmt}
     
     @classmethod
     def get_quality_options(cls) -> set:
