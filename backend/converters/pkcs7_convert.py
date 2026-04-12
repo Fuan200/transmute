@@ -114,8 +114,8 @@ class PKCS7Converter(ConverterInterface):
             # Verify it looks like DER (starts with ASN.1 SEQUENCE tag 0x30)
             if decoded and decoded[0:1] == b'\x30':
                 return decoded
-        except Exception:
-            pass
+        except (ValueError, base64.binascii.Error):
+            logger.debug("Input is not valid base64, assuming DER encoding")
 
         # Assume DER
         return raw
