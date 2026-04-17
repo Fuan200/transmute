@@ -38,6 +38,15 @@ function HotkeyHint({ label, className = '' }: { label: string; className?: stri
   )
 }
 
+async function getResponseDetail(response: Response) {
+  try {
+    const errorData = await response.json()
+    return typeof errorData?.detail === 'string' ? errorData.detail : response.statusText
+  } catch {
+    return response.statusText
+  }
+}
+
 function Converter() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -46,6 +55,7 @@ function Converter() {
   const [completedConversions, setCompletedConversions] = useState<CompletedConversion[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadCount, setUploadCount] = useState(0)
+  const [ignoredUploadCount, setIgnoredUploadCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [converting, setConverting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -119,58 +129,67 @@ function Converter() {
 
     setUploading(true)
     setError(null)
+    setIgnoredUploadCount(0)
     setUploadCount(files.length)
 
     const promises = files.map(async (file) => {
-      const formData = new FormData()
-      formData.append('file', file)
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
 
-      const response = await fetch('/api/files', {
-        method: 'POST',
-        body: formData,
-      })
+        const response = await fetch('/api/files', {
+          method: 'POST',
+          body: formData,
+        })
 
-      if (!response.ok) {
-        throw new Error(`Upload failed for ${file.name}: ${response.statusText}`)
+        if (!response.ok) {
+          const detail = await getResponseDetail(response)
+          if (response.status === 422) {
+            setIgnoredUploadCount((prev) => prev + 1)
+            return null
+          }
+          throw new Error(`Upload failed for ${file.name}: ${detail}`)
+        }
+
+        const data = await response.json()
+        const fileInfo: FileInfo = {
+          id: data.metadata.id,
+          original_filename: data.metadata.original_filename,
+          media_type: data.metadata.media_type,
+          extension: data.metadata.extension,
+          size_bytes: data.metadata.size_bytes,
+          created_at: data.metadata.created_at,
+          compatible_formats: data.metadata.compatible_formats,
+        }
+
+        const sortedFormats = fileInfo.compatible_formats
+          ? Object.keys(fileInfo.compatible_formats).sort()
+          : []
+        const inputExt = fileInfo.extension?.replace(/^\./, '') || fileInfo.media_type || ''
+        const normalizedExt = formatAliases[inputExt] || inputExt
+        const userDefault = defaultFormats[normalizedExt] || defaultFormats[inputExt]
+        const defaultFormat = (userDefault && sortedFormats.includes(userDefault))
+          ? userDefault
+          : sortedFormats[0] || ''
+
+        const qualities = (defaultFormat && fileInfo.compatible_formats?.[defaultFormat]) || []
+        const defaultQualityForFormat = defaultQualities[defaultFormat]
+        const pending: PendingFile = {
+          file: fileInfo,
+          selectedFormat: defaultFormat,
+          selectedQuality: qualities.length > 0
+            ? (defaultQualityForFormat && qualities.includes(defaultQualityForFormat) ? defaultQualityForFormat : (qualities.includes('medium') ? 'medium' : undefined))
+            : undefined,
+          status: 'pending',
+        }
+
+        // Add to pending list immediately as each upload completes
+        setPendingFiles((prev) => [...prev, pending])
+
+        return pending
+      } finally {
+        setUploadCount((prev) => Math.max(prev - 1, 0))
       }
-
-      const data = await response.json()
-      const fileInfo: FileInfo = {
-        id: data.metadata.id,
-        original_filename: data.metadata.original_filename,
-        media_type: data.metadata.media_type,
-        extension: data.metadata.extension,
-        size_bytes: data.metadata.size_bytes,
-        created_at: data.metadata.created_at,
-        compatible_formats: data.metadata.compatible_formats,
-      }
-
-      const sortedFormats = fileInfo.compatible_formats
-        ? Object.keys(fileInfo.compatible_formats).sort()
-        : []
-      const inputExt = fileInfo.extension?.replace(/^\./, '') || fileInfo.media_type || ''
-      const normalizedExt = formatAliases[inputExt] || inputExt
-      const userDefault = defaultFormats[normalizedExt] || defaultFormats[inputExt]
-      const defaultFormat = (userDefault && sortedFormats.includes(userDefault))
-        ? userDefault
-        : sortedFormats[0] || ''
-
-      const qualities = (defaultFormat && fileInfo.compatible_formats?.[defaultFormat]) || []
-      const defaultQualityForFormat = defaultQualities[defaultFormat]
-      const pending: PendingFile = {
-        file: fileInfo,
-        selectedFormat: defaultFormat,
-        selectedQuality: qualities.length > 0
-          ? (defaultQualityForFormat && qualities.includes(defaultQualityForFormat) ? defaultQualityForFormat : (qualities.includes('medium') ? 'medium' : undefined))
-          : undefined,
-        status: 'pending',
-      }
-
-      // Add to pending list immediately as each upload completes
-      setPendingFiles((prev) => [...prev, pending])
-      setUploadCount((prev) => prev - 1)
-
-      return pending
     })
 
     const results = await Promise.allSettled(promises)
@@ -392,13 +411,23 @@ function Converter() {
     await triggerDownloads(completedConversions)
   }
 
-  // Split pending files into convertable (has formats) and unsupported (no formats)
+  const clearIgnoredUploads = () => {
+    setIgnoredUploadCount(0)
+  }
+
+  const handleClearPending = () => {
+    setPendingFiles([])
+    clearIgnoredUploads()
+  }
+
+  const handleClearCompleted = () => {
+    setCompletedConversions([])
+    clearIgnoredUploads()
+  }
+
+  // Pending files are always convertible; unsupported uploads are rejected by the API.
   const convertableFiles = useMemo(() =>
     pendingFiles.filter(pf => pf.file.compatible_formats && Object.keys(pf.file.compatible_formats).length > 0),
-    [pendingFiles]
-  )
-  const unsupportedFiles = useMemo(() =>
-    pendingFiles.filter(pf => !pf.file.compatible_formats || Object.keys(pf.file.compatible_formats).length === 0),
     [pendingFiles]
   )
 
@@ -458,9 +487,8 @@ function Converter() {
   }
 
   const hasConvertableFiles = convertableFiles.length > 0
-  const hasUnsupportedFiles = unsupportedFiles.length > 0
   const hasCompletedConversions = completedConversions.length > 0
-  const hasStarted = hasConvertableFiles || hasUnsupportedFiles || hasCompletedConversions
+  const hasStarted = hasConvertableFiles || hasCompletedConversions
 
   const filePickerRef1 = useRef<HTMLInputElement>(null)
   const filePickerRef2 = useRef<HTMLInputElement>(null)
@@ -487,7 +515,7 @@ function Converter() {
       handleConvertAllRef.current();
     },
     'ESCAPE': () => {
-      setPendingFiles([])
+      handleClearPending()
     },
   }
 
@@ -564,6 +592,12 @@ function Converter() {
                 {error}
               </div>
             )}
+
+            {ignoredUploadCount > 0 && (
+              <div className="rounded-lg border border-text-muted/20 bg-surface-dark/40 px-3 py-2 text-xs text-text-muted">
+                {t('converter.ignoredUnsupported', { count: ignoredUploadCount })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -618,6 +652,12 @@ function Converter() {
           </div>
         )}
 
+        {ignoredUploadCount > 0 && (
+          <div className="mb-4 rounded-lg border border-text-muted/20 bg-surface-dark/40 px-3 py-2 text-xs text-text-muted">
+            {t('converter.ignoredUnsupported', { count: ignoredUploadCount })}
+          </div>
+        )}
+
         {/* Pending conversions section */}
         {hasConvertableFiles && (
           <div className="mb-8">
@@ -640,7 +680,7 @@ function Converter() {
                   <HotkeyHint label={hotkeyLabels.convert} className="text-text/80 hidden sm:inline" />
                 </button>
                 <button
-                  onClick={() => setPendingFiles(prev => prev.filter(pf => !pf.file.compatible_formats || Object.keys(pf.file.compatible_formats).length === 0))}
+                  onClick={handleClearPending}
                   disabled={converting}
                   className="flex items-center gap-1.5 sm:gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-3 sm:px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -675,36 +715,6 @@ function Converter() {
           </div>
         )}
 
-        {/* Unsupported files section */}
-        {hasUnsupportedFiles && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4 gap-2">
-              <h2 className="text-base sm:text-xl font-semibold text-text whitespace-nowrap">
-                {t('converter.unsupported', { count: unsupportedFiles.length })}
-              </h2>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button
-                  onClick={() => setPendingFiles(prev => prev.filter(pf => pf.file.compatible_formats && Object.keys(pf.file.compatible_formats).length > 0))}
-                  className="flex items-center gap-1.5 sm:gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-3 sm:px-4 rounded-lg transition duration-200"
-                >
-                  <FaTimes className="text-xs sm:text-sm" />
-                  <span className="hidden sm:inline">{t('converter.clear')}</span>
-                </button>
-              </div>
-            </div>
-            <FileTable
-              rows={unsupportedFiles.map(pf => ({
-                id: pf.file.id,
-                file: pf.file,
-                onDelete: () => handleDelete(pf.file.id, true),
-                onPreview: isPreviewable(pf.file.media_type) ? () => setPreviewFile({ id: pf.file.id, filename: pf.file.original_filename, mediaType: pf.file.media_type }) : undefined,
-                isDeleting: deletingId === pf.file.id,
-              }))}
-              showDate={false}
-            />
-          </div>
-        )}
-
         {/* Completed conversions section */}
         {hasCompletedConversions && (
           <div>
@@ -729,7 +739,7 @@ function Converter() {
                   </button>
                 )}
                 <button
-                  onClick={() => setCompletedConversions([])}
+                  onClick={handleClearCompleted}
                   className="flex items-center gap-1.5 sm:gap-2 text-sm text-text-muted hover:text-text border border-surface-dark hover:border-text-muted py-2 px-3 sm:px-4 rounded-lg transition duration-200"
                 >
                   <FaTimes className="text-xs sm:text-sm" />

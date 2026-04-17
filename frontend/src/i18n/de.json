@@ -96,7 +96,8 @@
     "clear": "Liste leeren",
     "downloadAll": "Alle {{count}} Dateien herunterladen",
     "downloading": "Download läuft...",
-    "unsupported": "Nicht unterstützt ({{count}})"
+    "ignoredUnsupported": "{{count}} Datei wurde ignoriert, da keine unterstützten Konvertierungen verfügbar sind.",
+    "ignoredUnsupported_other": "{{count}} Dateien wurden ignoriert, da keine unterstützten Konvertierungen verfügbar sind."
   },
   "files": {
     "title": "Dateien",

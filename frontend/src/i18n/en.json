@@ -96,7 +96,8 @@
     "clear": "Clear",
     "downloadAll": "Download All {{count}} Files",
     "downloading": "Downloading...",
-    "unsupported": "Unsupported ({{count}})"
+    "ignoredUnsupported": "Ignored {{count}} file with no supported conversions.",
+    "ignoredUnsupported_other": "Ignored {{count}} files with no supported conversions."
   },
   "files": {
     "title": "Files",

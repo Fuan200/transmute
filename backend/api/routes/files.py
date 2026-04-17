@@ -15,6 +15,8 @@ from api.schemas import FileListResponse, FileUploadResponse, FileDeleteResponse
 
 router = APIRouter(prefix="/files", tags=["files"])
 
+UNSUPPORTED_UPLOAD_DETAIL = "File has no supported conversions for the detected media type"
+
 # Define upload directory
 settings = get_settings()
 UPLOAD_DIR = settings.upload_dir
@@ -63,6 +65,11 @@ async def save_file(file: UploadFile, db: FileDB, user_id: str) -> dict:
     
     media_type = detect_media_type(file_path)
 
+    compatible_formats = converter_registry.get_compatible_formats_and_qualities(media_type)
+    if not compatible_formats:
+        file_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=422, detail=UNSUPPORTED_UPLOAD_DETAIL)
+
     metadata = {
         "id": uuid_str,
         "storage_path": str(file_path),
@@ -74,7 +81,7 @@ async def save_file(file: UploadFile, db: FileDB, user_id: str) -> dict:
         "user_id": user_id,
     }
     db.insert_file_metadata(metadata)
-    metadata["compatible_formats"] = converter_registry.get_compatible_formats_and_qualities(media_type)
+    metadata["compatible_formats"] = compatible_formats
     return metadata
 
 
@@ -107,6 +114,10 @@ def list_files(
             "model": FileUploadResponse,
             "description": "File uploaded successfully"
         },
+        422: {
+            "model": ErrorResponse,
+            "description": "File has no supported conversions"
+        },
         500: {
             "model": ErrorResponse,
             "description": "Upload failed"
@@ -122,6 +133,8 @@ async def upload_file(
     try:
         metadata = await save_file(file, file_db, current_user["uuid"])
         return {"message": "File uploaded successfully", "metadata": metadata}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
     finally:
