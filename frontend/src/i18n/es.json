@@ -96,7 +96,8 @@
     "clear": "Limpiar",
     "downloadAll": "Descargar todos los {{count}} archivos",
     "downloading": "Descargando...",
-    "unsupported": "No Soportados ({{count}})"
+    "ignoredUnsupported": "Se ignoró {{count}} archivo sin conversiones compatibles.",
+    "ignoredUnsupported_other": "Se ignoraron {{count}} archivos sin conversiones compatibles."
   },
   "files": {
     "title": "Archivos",
@@ -219,9 +220,9 @@
     "title": "Estadísticas",
     "loadFailed": "Error al cargar las estadísticas",
     "snapshotNotice": "Estas son una snapshot actual de los archivos, conversiones y almacenamiento en este sistema. No son totales globales.",
-    "totalUploads": "Total de Archivos Subidos",
-    "totalConversions": "Total de Conversiones",
-    "totalStorage": "Total de Almacenamiento",
+    "currentUploadedFiles": "Archivos subidos actuales",
+    "currentConvertedFiles": "Archivos convertidos actuales",
+    "storageInUse": "Almacenamiento en uso",
     "storageByUser": "Almacenamiento por Usuario",
     "noData": "Aún no hay datos.",
     "activityByUser": "Actividad por Usuario",
