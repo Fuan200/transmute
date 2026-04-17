@@ -169,7 +169,6 @@ async def oidc_callback(
     oauth.oidc.server_metadata = metadata
 
     token = await oauth.oidc.authorize_access_token(request)
-    nonce = request.session.pop("oidc_nonce", None)
     userinfo = token.get("userinfo")
     if userinfo is None:
         raise HTTPException(status_code=400, detail="OIDC provider did not return user information")

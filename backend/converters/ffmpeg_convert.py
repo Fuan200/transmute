@@ -391,7 +391,7 @@ class FFmpegConverter(ConverterInterface):
         try:
             # Subprocess is safe here because the input file path is validated
             # and the command is constructed without user input.
-            result = subprocess.run( # nosec B603
+            subprocess.run( # nosec B603
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
