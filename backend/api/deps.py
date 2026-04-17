@@ -1,5 +1,6 @@
 """FastAPI dependency injection functions for database connections."""
 from functools import lru_cache
+import logging
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
@@ -10,6 +11,9 @@ from db import FileDB, ConversionDB, ConversionRelationsDB, SettingsDB, DefaultF
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/users/token", auto_error=False)
+
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -122,7 +126,7 @@ def get_current_user(
             if user is not None:
                 return user
     except InvalidTokenError:
-        pass
+        logger.debug("Token is not a valid JWT, attempting API key resolution")
 
     # Fall back to API key
     user = _resolve_user_from_api_key(token, api_key_db, user_db)
@@ -150,7 +154,7 @@ def get_current_user_optional(
             if user is not None:
                 return user
     except InvalidTokenError:
-        pass
+        logger.debug("Token is not a valid JWT, attempting API key resolution")
 
     # Fall back to API key
     return _resolve_user_from_api_key(token, api_key_db, user_db)

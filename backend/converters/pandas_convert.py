@@ -1,5 +1,6 @@
 import os
 import re
+import logging
 import configparser
 import sqlite3
 import tomllib
@@ -15,6 +16,9 @@ import yaml, json
 from pandas.api.types import is_object_dtype, is_scalar
 from typing import Optional
 from .converter_interface import ConverterInterface
+
+
+logger = logging.getLogger(__name__)
 
 
 def _structured_data_to_dataframe(data):
@@ -55,6 +59,22 @@ def _to_string_keyed_data(value):
     return value
 
 
+def _try_unwrap_scalar_item(value, *, context: str = 'value'):
+    if not hasattr(value, 'item') or isinstance(value, (str, bytes, bytearray, datetime, date, time)):
+        return value
+
+    try:
+        return value.item()
+    except (AttributeError, ValueError, TypeError) as exc:
+        logger.debug(
+            "Could not unwrap %s via .item(); keeping original %s",
+            context,
+            type(value).__name__,
+            exc_info=exc,
+        )
+        return value
+
+
 def _to_toml_compatible(value):
     if value is None:
         return ''
@@ -68,11 +88,7 @@ def _to_toml_compatible(value):
     if hasattr(value, 'tolist') and not is_scalar(value):
         return _to_toml_compatible(value.tolist())
 
-    if hasattr(value, 'item') and not isinstance(value, (str, bytes, bytearray, datetime, date, time)):
-        try:
-            value = value.item()
-        except (AttributeError, ValueError, TypeError):
-            pass
+    value = _try_unwrap_scalar_item(value, context='TOML value')
 
     if isinstance(value, pd.Timestamp):
         return value.to_pydatetime()
@@ -111,11 +127,7 @@ def _stringify_value(value):
     if isinstance(value, float) and pd.isna(value):
         return None
 
-    if hasattr(value, 'item') and not isinstance(value, (str, bytes, bytearray, datetime, date, time)):
-        try:
-            value = value.item()
-        except (AttributeError, ValueError, TypeError):
-            pass
+    value = _try_unwrap_scalar_item(value, context='stringified value')
 
     if not is_scalar(value):
         return _serialize_nested_value(value)
@@ -152,12 +164,7 @@ def _prepare_dataframe_for_arrow(df):
         normalized_types = set()
         has_nested = False
         for value in non_null:
-            candidate = value
-            if hasattr(candidate, 'item') and not isinstance(candidate, (str, bytes, bytearray, datetime, date, time)):
-                try:
-                    candidate = candidate.item()
-                except (AttributeError, ValueError, TypeError):
-                    pass
+            candidate = _try_unwrap_scalar_item(value, context=f"column {column}")
             if not is_scalar(candidate):
                 has_nested = True
                 break
