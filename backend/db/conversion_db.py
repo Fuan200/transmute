@@ -22,13 +22,18 @@ class ConversionDB(FileDB):
     def __init__(self) -> None:
         """Initialize ConversionDB and create the conversions table."""
         super().__init__()
+        self._ensure_quality_column()
+
+    def _ensure_quality_column(self) -> None:
+        """Ensure the conversion metadata table has the optional quality column."""
+        migrate_table_columns(self.conn, self.TABLE_NAME, {
+            "quality": "TEXT",
+        })
 
     def create_tables(self) -> None:
         """Create the conversion metadata table with the quality column."""
         super().create_tables()
-        migrate_table_columns(self.conn, self.TABLE_NAME, {
-            "quality": "TEXT",
-        })
+        self._ensure_quality_column()
 
     def insert_file_metadata(self, metadata: dict) -> None:
         """Insert a new conversion file metadata record, including optional quality."""

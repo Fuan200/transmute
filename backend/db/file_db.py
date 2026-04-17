@@ -33,11 +33,11 @@ class FileDB:
         return self._table_name
 
     def __init__(self) -> None:
-        """Initialize FileDB, validate the table name, and create tables."""
+        """Initialize FileDB, validate the table name, and create base tables."""
         # Validate and lock table name — immutable after init
         object.__setattr__(self, '_table_name', validate_sql_identifier(self._TABLE_NAME))
         self._local = threading.local()
-        self.create_tables()
+        self._create_base_tables()
 
     @property
     def conn(self) -> sqlite3.Connection:
@@ -46,8 +46,8 @@ class FileDB:
             self._local.conn = sqlite3.connect(self.DB_PATH)
         return self._local.conn
 
-    def create_tables(self) -> None:
-        """Create the file metadata table if it does not already exist."""
+    def _create_base_tables(self) -> None:
+        """Create the base file metadata table and ensure required columns exist."""
         with self.conn:
             self.conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS {self.TABLE_NAME} (
@@ -76,6 +76,10 @@ class FileDB:
 
         # Assign pre-auth orphaned rows to the first admin
         assign_orphaned_rows_to_admin(self.conn, self.TABLE_NAME)
+
+    def create_tables(self) -> None:
+        """Create the file metadata table if it does not already exist."""
+        self._create_base_tables()
 
     def insert_file_metadata(self, metadata: dict) -> None:
         """Insert a new file metadata record into the database.
