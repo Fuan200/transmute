@@ -181,10 +181,10 @@ def _prepare_dataframe_for_output(df, output_type):
         return _prepare_dataframe_for_arrow(df)
 
     if output_type == 'sqlite':
-        return df.apply(lambda column: column.map(_serialize_nested_value))
+        return df.map(_serialize_nested_value)
 
     if output_type == 'xml':
-        prepared = df.apply(lambda column: column.map(_serialize_nested_value))
+        prepared = df.map(_serialize_nested_value)
         prepared = prepared.rename(columns=lambda column: _sanitize_xml_tag_name(column))
         return prepared
 
