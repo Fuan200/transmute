@@ -492,6 +492,33 @@ function Converter() {
     setDragOver(false)
   }
 
+  const handlePaste = async (event: ClipboardEvent) => {
+    const clipboard = event.clipboardData
+    if (!clipboard) return
+
+    const fileKey = (f: File) => `${f.name}|${f.size}|${f.type}|${f.lastModified}`
+    const directFiles = Array.from(clipboard.files ?? [])
+    const seenKeys = new Set(directFiles.map(fileKey))
+    const itemFiles: File[] = []
+    if (clipboard.items) {
+      for (const item of Array.from(clipboard.items)) {
+        if (item.kind !== 'file') continue
+        const file = item.getAsFile()
+        if (!file) continue
+        const key = fileKey(file)
+        if (seenKeys.has(key)) continue
+        seenKeys.add(key)
+        itemFiles.push(file)
+      }
+    }
+
+    const files = [...directFiles, ...itemFiles]
+    if (files.length > 0) {
+      event.preventDefault()
+      await processFiles(files)
+    }
+  }
+
   const handleFormatChange = (fileId: string, format: string) => {
     setPendingFiles((prev) =>
       prev.map((pf) => {
@@ -1009,6 +1036,20 @@ function Converter() {
       window.removeEventListener('keydown', keydownHandler)
     }
   }, [keydownHandler])
+
+  const handlePasteRef = useRef(handlePaste)
+
+  useEffect(() => {
+    handlePasteRef.current = handlePaste;
+  })
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      void handlePasteRef.current(event)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [])
 
   useEffect(() => {
     handleConvertAllRef.current = handleConvertAll;
