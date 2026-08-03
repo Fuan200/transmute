@@ -52,7 +52,6 @@ i18n
   .use(initReactI18next)
   .init({
     supportedLngs: [...SUPPORTED_LANGUAGES],
-    nonExplicitSupportedLngs: true,
     resources: {
       en: { translation: en },
       az: { translation: az },
