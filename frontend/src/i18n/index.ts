@@ -73,8 +73,11 @@ i18n
     },
     detection: {
       order: isTest ? ['navigator'] : ['localStorage', 'navigator'],
-      caches: isTest ? [] : ['localStorage'],
-      lookupLocalStorage: LANGUAGE_STORAGE_KEY,
+      // Never auto-cache: only an explicit user selection is persisted (see
+      // setStoredLanguagePreference). This keeps "Browser Locale" mode following
+      // the live navigator locale on every reload instead of a stale cached value.
+      caches: [],
+      lookupLocalStorage: USER_LANGUAGE_PREFERENCE_KEY,
     },
   })
 
