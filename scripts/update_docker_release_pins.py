@@ -58,7 +58,7 @@ def download_and_hash(url: str, destination: Path) -> str:
             hasher.update(chunk)
             output_file.write(chunk)
 
-            status(f"Computed sha256 for {destination.name}")
+    status(f"Computed sha256 for {destination.name}")
     return hasher.hexdigest()
 
 
